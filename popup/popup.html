@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kbeautyhub - TikTok View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sofia+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="kbeauty-popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="header-brand">
+        <span class="brand-icon">🛍️</span>
+        <div>
+          <div class="brand-title-wrap">
+            <h1 class="brand-name">Kbeautyhub</h1>
+            <span class="version-tag">v1.9.6</span>
+          </div>
+          <p class="brand-sub">TikTok Shop PC Viewer • Developed by <strong>Son Designer</strong></p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Master ON/OFF Switch -->
+        <div class="master-switch-wrap" title="Bật / Tắt Tiện ích">
+          <label class="kbeauty-switch">
+            <input type="checkbox" id="master-toggle" />
+            <span class="kbeauty-slider round"></span>
+          </label>
+          <span id="master-status-label" class="master-status-badge">...</span>
+        </div>
+
+        <button class="header-reload-btn" id="btn-quick-reload" title="Tải lại tiện ích & làm mới TikTok">
+          🔄
+        </button>
+        <div class="header-status" id="connection-status">
+          <span class="status-dot"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Update Notification Banner (Auto-Update Online) -->
+    <div id="update-notification-banner" class="update-notification-banner" style="display: none;">
+      <div class="update-banner-content">
+        <span class="update-icon">🚀</span>
+        <span id="update-banner-text" class="update-text">Có phiên bản mới!</span>
+      </div>
+      <div class="update-banner-actions">
+        <a id="btn-download-update" href="#" target="_blank" class="btn-update-action">Tải ngay</a>
+        <button id="btn-dismiss-update" class="btn-update-close" title="Đóng">✕</button>
+      </div>
+    </div>
+
+    <!-- Activation Screen (Displayed when locked) -->
+    <div id="activation-screen" class="activation-screen" style="display: none;">
+      <div class="activation-card">
+        <div class="activation-icon-glow">🔐</div>
+        <h2 class="activation-title">Kích Hoạt Bản Quyền</h2>
+        <p class="activation-desc">
+          Vui lòng nhập mật khẩu cấp phép để kích hoạt và sử dụng tiện ích trên thiết bị này.
+        </p>
+
+        <div class="activation-form">
+          <div class="activation-field">
+            <label for="activation-password-input">Mật khẩu kích hoạt:</label>
+            <div class="activation-input-wrap">
+              <input type="password" id="activation-password-input" placeholder="Nhập mật khẩu bí mật..." />
+              <button type="button" id="btn-toggle-pwd-vis" class="btn-pwd-vis" title="Ẩn/Hiện">👁️</button>
+            </div>
+            <div id="activation-error" class="activation-error"></div>
+          </div>
+
+          <button id="btn-submit-activation" class="btn btn-primary activation-submit-btn">
+            🚀 Kích Hoạt Thiết Bị Ngay
+          </button>
+
+          <div class="activation-hint-box">
+            <p>🔒 Thiết bị được bảo vệ bởi mật khẩu phân quyền</p>
+            <p>Bản quyền & Quản trị: <strong>Son Designer • Kbeautyhub</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Container (Displayed when unlocked) -->
+    <div id="main-app-container">
+      <!-- Navigation Tabs -->
+      <nav class="popup-tabs">
+        <button class="tab-btn active" data-tab="tab-current">
+          <span>🎬</span> Hiện tại
+        </button>
+        <button class="tab-btn" data-tab="tab-history">
+          <span>📦</span> Lịch sử (<span id="history-count">0</span>)
+        </button>
+        <button class="tab-btn" data-tab="tab-admin">
+          <span>👑</span> Admin
+        </button>
+        <button class="tab-btn" data-tab="tab-tools">
+          <span>⚙️</span> Tiện ích
+        </button>
+      </nav>
+
+      <!-- Tab 1: Current Video -->
+      <section class="tab-content active" id="tab-current">
+        <div id="current-video-content">
+          <div class="loading-spinner">Đang tìm dữ liệu video trên tab...</div>
+        </div>
+      </section>
+
+      <!-- Tab 2: History -->
+      <section class="tab-content" id="tab-history">
+        <div class="history-controls">
+          <input type="text" id="history-search" placeholder="🔍 Tìm kiếm sản phẩm, kênh..." />
+          <button id="btn-history-export-excel" class="btn btn-excel btn-history-export" title="Xuất file Excel (.xlsx) chuẩn cột hàng">📊 Xuất Excel</button>
+        </div>
+
+        <!-- Admin Multi-Tenant Device Filter Bar (Visible only for Admin) -->
+        <div id="admin-history-filter-bar" class="admin-history-filter-bar" style="display: none;">
+          <span class="filter-lbl">👤 Lọc theo khách/máy:</span>
+          <select id="admin-device-filter-select" class="admin-filter-select">
+            <option value="ALL">🌐 Toàn bộ khách (Tất cả thiết bị)</option>
+            <option value="CURRENT">💻 Thiết bị này (Admin)</option>
+          </select>
+          <span id="admin-history-badge-count" class="badge-count">0 mục</span>
+        </div>
+
+        <div id="history-list" class="history-list">
+          <!-- Rendered by popup.js -->
+        </div>
+      </section>
+
+      <!-- Tab 3: Admin & Device Management -->
+      <section class="tab-content" id="tab-admin">
+        <!-- Current Device Real-Time Status -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-icon">💻</span>
+            <div>
+              <h3 class="admin-card-title">Thiết Bị Này (Thời Gian Thực)</h3>
+              <p class="admin-card-sub">Trạng thái kết nối và giám sát hoạt động hiện tại</p>
+            </div>
+            <span class="status-pill online" id="current-device-status-pill">🟢 Trực tuyến</span>
+          </div>
+
+          <div class="device-details-grid">
+            <div class="device-prop">
+              <span class="prop-label">Mã thiết bị (Device ID):</span>
+              <strong class="prop-value" id="admin-device-id">KBH-PC-UNKNOWN</strong>
+            </div>
+            <div class="device-prop">
+              <span class="prop-label">Môi trường & OS:</span>
+              <span class="prop-value" id="admin-device-name">Windows PC • Chrome</span>
+            </div>
+            <div class="device-prop">
+              <span class="prop-label">Độ phân giải màn hình:</span>
+              <span class="prop-value" id="admin-device-screen">1920x1080</span>
+            </div>
+            <div class="device-prop">
+              <span class="prop-label">Đang xem trên TikTok:</span>
+              <strong class="prop-value highlight" id="admin-device-watching">Chưa phát hiện video</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Analytics Overview -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-icon">📊</span>
+            <div>
+              <h3 class="admin-card-title">Tổng Hợp & Phân Tích Dữ Liệu</h3>
+              <p class="admin-card-sub">Thống kê hoạt động quét giỏ hàng TikTok</p>
+            </div>
+          </div>
+
+          <div class="analytics-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-num" id="stat-total-watched">0</span>
+              <span class="metric-lbl">Tổng video đã xem</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-num highlight-yellow" id="stat-shop-videos">0</span>
+              <span class="metric-lbl">Video có TikTok Shop</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-num highlight-cyan" id="stat-shop-rate">0%</span>
+              <span class="metric-lbl">Tỷ lệ gắn giỏ hàng</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-num highlight-pink" id="stat-shops-count">0</span>
+              <span class="metric-lbl">Gian hàng phát hiện</span>
+            </div>
+          </div>
+
+          <!-- Top Discovered Shops -->
+          <div class="top-shops-section">
+            <h4 class="top-shops-title">🏪 Top Gian Hàng Xuất Hiện Nhiều Nhất:</h4>
+            <div id="top-shops-list" class="top-shops-list">
+              <div class="empty-hint">Chưa có dữ liệu shop</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Session Management -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-icon">👥</span>
+            <div>
+              <h3 class="admin-card-title">Quản Lý Các Thiết Bị Đăng Nhập</h3>
+              <p class="admin-card-sub">Danh sách các phiên máy tính được cấp quyền</p>
+            </div>
+          </div>
+
+          <div id="admin-devices-list" class="admin-devices-list">
+            <!-- Rendered by popup.js -->
+          </div>
+        </div>
+
+        <!-- Cloud Synchronization & Remote Auto-Update (Google Sheets 100% Free) -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-icon">☁️</span>
+            <div>
+              <h3 class="admin-card-title">Đồng Bộ Trực Tuyến & Cập Nhật Tự Động</h3>
+              <p class="admin-card-sub">Tổng hợp khách từ xa & đồng bộ phiên bản mới (Google Sheets 100% Free)</p>
+            </div>
+            <span id="cloud-sync-status-pill" class="status-pill offline">⚪ Chưa kết nối</span>
+          </div>
+
+          <div class="cloud-sync-box">
+            <div class="cloud-input-group">
+              <label for="cloud-api-url">URL Google Apps Script Web App (API):</label>
+              <div class="cloud-input-row">
+                <input type="text" id="cloud-api-url" placeholder="https://script.google.com/macros/s/.../exec" />
+                <button id="btn-save-cloud-url" class="btn btn-primary btn-sm">💾 Lưu & Kết nối</button>
+              </div>
+              <p class="cloud-hint">Dán URL Web App triển khai từ Google Sheets để đồng bộ 24/7 từ xa giữa tất cả các máy.</p>
+            </div>
+
+            <div class="cloud-metrics-grid">
+              <div class="cloud-metric-item">
+                <span class="cloud-m-lbl">Khách từ xa kết nối:</span>
+                <strong id="cloud-stat-devices" class="cloud-m-val">0 máy</strong>
+              </div>
+              <div class="cloud-metric-item">
+                <span class="cloud-m-lbl">Lịch sử khách tổng hợp:</span>
+                <strong id="cloud-stat-history" class="cloud-m-val">0 video</strong>
+              </div>
+              <div class="cloud-metric-item">
+                <span class="cloud-m-lbl">Lần đồng bộ cuối:</span>
+                <span id="cloud-stat-last-sync" class="cloud-m-val">Chưa có</span>
+              </div>
+            </div>
+
+            <div class="cloud-actions-row">
+              <button id="btn-force-cloud-sync" class="btn btn-secondary btn-sm">🔄 Đồng bộ ngay</button>
+              <button id="btn-open-google-sheet" class="btn btn-outline btn-sm">📊 Mở Google Sheet</button>
+              <button id="btn-copy-gas-code" class="btn btn-outline btn-sm">📋 Sao chép mã Google Apps Script mẫu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security & Multi-Tier Password Controls -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-icon">🔐</span>
+            <div>
+              <h3 class="admin-card-title">Phân Quyền & Quản Lý Mật Khẩu</h3>
+              <p class="admin-card-sub">Quản lý mật khẩu Admin và mật khẩu cấp cho Khách</p>
+            </div>
+          </div>
+
+          <div class="password-management-box">
+            <div class="password-tier-card">
+              <div class="tier-info">
+                <span class="tier-badge admin-badge">👑 Mật khẩu Admin (Master)</span>
+                <span class="tier-desc">Dành riêng cho bạn (Toàn quyền quản trị)</span>
+              </div>
+              <button id="btn-change-admin-password" class="btn btn-sm btn-outline">🔑 Đổi Pass Admin</button>
+            </div>
+
+            <div class="password-tier-card">
+              <div class="tier-info">
+                <span class="tier-badge guest-badge">👥 Mật khẩu Khách (Guest)</span>
+                <span class="tier-desc">Cấp cho khách/nhân viên: <strong id="admin-guest-pass-display" style="color:#25F4EE;font-weight:700;">guest2026</strong></span>
+              </div>
+              <button id="btn-change-guest-password" class="btn btn-sm btn-primary">👥 Đổi Pass Khách</button>
+            </div>
+          </div>
+
+          <div class="admin-actions-row" style="margin-top:10px;">
+            <button id="btn-lock-extension" class="btn btn-secondary">
+              🔒 Khóa Tiện Ích Trên Máy Này
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 4: Tools & Export -->
+      <section class="tab-content" id="tab-tools">
+        <div class="tools-card">
+          <h3>📊 Xuất dữ liệu giỏ hàng (Chuẩn Cột Hàng)</h3>
+          <p>Tải danh sách các sản phẩm và video đã quét để nghiên cứu đối thủ, phân tích affiliate, chia cột chuẩn 100% không bị dồn cột.</p>
+          <div class="tools-btn-group-vertical">
+            <button id="btn-export-excel" class="btn btn-excel">📊 Xuất file Excel (.xlsx) [Chuẩn Cột Hàng]</button>
+            <div class="tools-btn-subgroup">
+              <button id="btn-export-csv" class="btn btn-secondary">📥 Xuất file CSV (Đã fix phân cột)</button>
+              <button id="btn-export-json" class="btn btn-outline">💾 Xuất file JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tools-card">
+          <h3>🔄 Quản lý tiện ích</h3>
+          <p>Bấm nút bên dưới để tải lại tiện ích ngay lập tức mà không cần vào cài đặt trình duyệt.</p>
+          <button id="btn-reload-extension" class="btn btn-secondary">🔄 Tải lại tiện ích (Reload Extension)</button>
+        </div>
+
+        <div class="tools-card">
+          <h3>🚀 Thao tác nhanh</h3>
+          <button id="btn-open-tiktok" class="btn btn-outline">🌐 Mở TikTok Web</button>
+          <button id="btn-clear-history" class="btn btn-danger">🗑️ Xóa toàn bộ lịch sử</button>
+        </div>
+
+        <div class="tools-card-footer">
+          <p>Developed by <strong>Son Designer</strong> • Phiên bản 1.9.5</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

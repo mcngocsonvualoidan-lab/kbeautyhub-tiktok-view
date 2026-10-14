@@ -1,0 +1,967 @@
+/* ============================================================
+   Kbeautyhub - TikTok View
+   Overlay Styles (Dark Theme TikTok Aesthetic)
+============================================================ */
+
+#kbeauty-root,
+#kbeauty-drawer,
+#kbeauty-drawer *,
+#kbeauty-floating-hub {
+  font-family: "TikTokFont", "TikTokDisplayFont", "Plus Jakarta Sans", "Sofia Sans", "SofiaPro", "Proxima Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#kbeauty-root,
+#kbeauty-drawer,
+#kbeauty-floating-hub {
+  z-index: 2147483640;
+  color: #FFFFFF;
+}
+
+#kbeauty-drawer input,
+#kbeauty-drawer button,
+#kbeauty-drawer a,
+#kbeauty-drawer span,
+#kbeauty-drawer strong,
+#kbeauty-drawer h4 {
+  font-family: "TikTokFont", "TikTokDisplayFont", "Plus Jakarta Sans", "Sofia Sans", "SofiaPro", "Proxima Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  box-sizing: border-box !important;
+}
+
+/* --- Floating Hub Button (Right Edge) --- */
+#kbeauty-floating-hub {
+  position: fixed;
+  right: 520px;
+  top: 75px;
+  z-index: 2147483647;
+  background: linear-gradient(135deg, #161823 0%, #252836 100%);
+  border: 1.5px solid #FE2C55;
+  border-radius: 50px;
+  padding: 7px 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(254, 44, 85, 0.35);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+#kbeauty-floating-hub:hover {
+  transform: scale(1.05);
+  border-color: #25F4EE;
+  box-shadow: 0 8px 24px rgba(37, 244, 238, 0.4);
+}
+
+.kbeauty-hub-icon {
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+}
+
+.kbeauty-hub-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.kbeauty-hub-badge {
+  background: #FE2C55;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Pulsing effect when products found */
+.kbeauty-pulse-glow {
+  animation: kbeauty-glow 2s infinite ease-in-out;
+}
+
+@keyframes kbeauty-glow {
+  0% { box-shadow: 0 0 10px rgba(254, 44, 85, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(254, 44, 85, 0.8), 0 0 10px rgba(37, 244, 238, 0.5); }
+  100% { box-shadow: 0 0 10px rgba(254, 44, 85, 0.4); }
+}
+
+/* --- In-Video Badge --- */
+.kbeauty-invideo-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+  background: rgba(22, 24, 35, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid #FFB800;
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.kbeauty-invideo-badge:hover {
+  transform: scale(1.05);
+  background: rgba(255, 184, 0, 0.2);
+  border-color: #FFA000;
+}
+
+.kbeauty-badge-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kbeauty-badge-icon {
+  font-size: 16px;
+}
+
+.kbeauty-badge-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFDE59;
+}
+
+/* --- Drawer Component --- */
+#kbeauty-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.kbeauty-drawer-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.kbeauty-drawer-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.kbeauty-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.kbeauty-drawer-open .kbeauty-drawer-backdrop {
+  opacity: 1;
+}
+
+.kbeauty-drawer-panel {
+  position: relative;
+  width: 450px;
+  max-width: 95vw;
+  height: 100%;
+  background: #12131A;
+  border-left: 1px solid #2B2E3D;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+.kbeauty-drawer-open .kbeauty-drawer-panel {
+  transform: translateX(0);
+}
+
+.kbeauty-drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #232634;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #181A24;
+  box-sizing: border-box;
+}
+
+.kbeauty-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kbeauty-logo {
+  font-size: 18px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.2px;
+}
+
+.kbeauty-subtitle {
+  font-size: 11.5px;
+  color: #25F4EE;
+  font-weight: 600;
+}
+
+.kbeauty-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.kbeauty-close-btn:hover {
+  color: #FFFFFF;
+  background: #FE2C55;
+  border-color: #FE2C55;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(254, 44, 85, 0.4);
+}
+
+.kbeauty-toggle-off-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.kbeauty-toggle-off-btn:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+  border-color: #EF4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.kbeauty-drawer-body {
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px 14px;
+  box-sizing: border-box !important;
+}
+
+/* Custom Scrollbar */
+.kbeauty-drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+.kbeauty-drawer-body::-webkit-scrollbar-thumb {
+  background: #34374A;
+  border-radius: 3px;
+}
+
+.kbeauty-drawer-footer {
+  padding: 14px 18px;
+  border-top: 1px solid #232634;
+  background: #161822;
+}
+
+.kbeauty-footer-hint {
+  display: none !important;
+}
+
+.kbeauty-footer-credit {
+  font-size: 11.5px;
+  color: #8E94A8;
+  text-align: center;
+  line-height: 1.4;
+  padding: 4px 0;
+  border-top: none;
+}
+
+.kbeauty-footer-credit strong {
+  color: #25F4EE;
+  font-weight: 700;
+}
+
+/* --- Video Meta Header --- */
+.kbeauty-video-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #222533;
+}
+
+.kbeauty-author-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #E2E4EE;
+}
+
+.kbeauty-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #FE2C55;
+}
+
+.kbeauty-count-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFB800;
+  background: rgba(255, 184, 0, 0.12);
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+/* --- Product Cards --- */
+.kbeauty-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kbeauty-product-card {
+  background: #1B1E2B;
+  border: 1px solid #2D3145;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease;
+}
+
+.kbeauty-product-card:hover {
+  border-color: #FE2C55;
+  box-shadow: 0 4px 20px rgba(254, 44, 85, 0.2);
+}
+
+.kbeauty-card-top-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kbeauty-card-thumb {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #252838;
+}
+
+.kbeauty-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kbeauty-card-header-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kbeauty-product-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #FFFFFF;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kbeauty-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kbeauty-price-tag {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #FE2C55;
+}
+
+.kbeauty-sales-tag {
+  font-size: 11px;
+  color: #9297AE;
+}
+
+.kbeauty-shop-name {
+  font-size: 12px;
+  color: #A0A4B8;
+  margin-bottom: 8px;
+}
+
+/* Shop and Cart Link Container - 100% Full Width of Card */
+.kbeauty-shop-box {
+  background: #151824;
+  border: 1px solid #282C3E;
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box !important;
+  font-size: 11.5px;
+}
+
+.kbeauty-shop-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #FFB800;
+  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kbeauty-shop-name-text {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.kbeauty-link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kbeauty-link-label {
+  font-size: 10.5px;
+  color: #9297AE;
+  font-weight: 600;
+}
+
+.kbeauty-link-box {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box !important;
+}
+
+.kbeauty-link-input {
+  flex: 1 1 0;
+  min-width: 0 !important;
+  width: 0;
+  background: #0B0D14;
+  border: 1px solid #25283B;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #25F4EE;
+  font-size: 11px;
+  font-family: monospace;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box !important;
+}
+
+.kbeauty-btn-copy {
+  background: #252839;
+  color: #FFFFFF;
+  border: 1px solid #3B405A;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-sizing: border-box !important;
+}
+.kbeauty-btn-copy:hover {
+  background: #363B54;
+  border-color: #25F4EE;
+  color: #25F4EE;
+}
+
+.kbeauty-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Buttons */
+.kbeauty-btn {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box !important;
+}
+
+.kbeauty-btn-primary {
+  background: #FE2C55;
+  color: #FFFFFF;
+}
+.kbeauty-btn-primary:hover {
+  background: #E01E47;
+}
+
+.kbeauty-btn-secondary {
+  background: #292D3E;
+  color: #25F4EE;
+  border: 1px solid #3B415A;
+}
+.kbeauty-btn-secondary:hover {
+  background: #373D54;
+  border-color: #25F4EE;
+}
+
+.kbeauty-btn-ghost {
+  background: transparent;
+  color: #B4B8CB;
+  border: 1px solid #303548;
+}
+.kbeauty-btn-ghost:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Empty State */
+.kbeauty-empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: #8C90A4;
+}
+
+.kbeauty-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.kbeauty-empty-state h3 {
+  font-size: 16px;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+}
+
+.kbeauty-empty-state p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.kbeauty-tip-box {
+  background: rgba(37, 244, 238, 0.08);
+  border: 1px dashed rgba(37, 244, 238, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  color: #A6EFEA;
+  text-align: left;
+}
+
+.kbeauty-video-summary {
+  background: #1B1E2B;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  text-align: left;
+  margin-top: 14px;
+  color: #D1D5E5;
+}
+
+/* --- QR Modal --- */
+#kbeauty-qr-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.kbeauty-qr-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.kbeauty-qr-card {
+  position: relative;
+  background: #181A25;
+  border: 1.5px solid #25F4EE;
+  border-radius: 16px;
+  width: 340px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(37, 244, 238, 0.3);
+}
+
+.kbeauty-qr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.kbeauty-qr-header h3 {
+  font-size: 15px;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.kbeauty-qr-close {
+  background: none;
+  border: none;
+  color: #8C90A4;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.kbeauty-qr-desc {
+  font-size: 13px;
+  color: #A0A5BA;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kbeauty-qr-canvas-wrap {
+  background: #FFFFFF;
+  padding: 12px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+#kbeauty-qr-img {
+  width: 200px;
+  height: 200px;
+  display: block;
+}
+
+.kbeauty-qr-hint {
+  font-size: 12px;
+  color: #25F4EE;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --- Unblocked Video Player Modal --- */
+#kbeauty-player-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.kbeauty-player-card {
+  position: relative;
+  background: #11131A;
+  border: 1.5px solid #FE2C55;
+  border-radius: 16px;
+  width: 420px;
+  max-width: 95vw;
+  padding: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+}
+
+.kbeauty-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kbeauty-player-video-wrap {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.kbeauty-player-video-wrap video {
+  width: 100%;
+  height: 100%;
+  max-height: 70vh;
+  display: block;
+}
+
+/* --- Mobile Web Shop Modal --- */
+#kbeauty-shop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.kbeauty-shop-card {
+  position: relative;
+  background: #181A25;
+  border: 1.5px solid #25F4EE;
+  border-radius: 16px;
+  width: 440px;
+  height: 85vh;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+}
+
+.kbeauty-shop-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #FFFFFF;
+}
+
+/* --- Mobile-Style Floating Cart Bar (Bottom-Left of Video) --- */
+.kbeauty-mobile-cart-badge {
+  position: absolute;
+  bottom: 56px;
+  left: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 18, 26, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid #FFB800;
+  border-radius: 12px;
+  padding: 8px 12px;
+  max-width: 380px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 184, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  animation: kbeauty-cart-bounce 0.4s ease-out;
+}
+
+@keyframes kbeauty-cart-bounce {
+  0% { transform: translateY(15px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.kbeauty-mobile-cart-badge:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: #25F4EE;
+  box-shadow: 0 10px 35px rgba(37, 244, 238, 0.4), 0 0 15px rgba(255, 184, 0, 0.5);
+}
+
+.kbeauty-mobile-cart-close {
+  background: transparent;
+  border: none;
+  color: #8C92A4;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+  margin-left: 2px;
+  transition: color 0.15s ease;
+}
+.kbeauty-mobile-cart-close:hover {
+  color: #FFFFFF;
+}
+
+.kbeauty-mobile-cart-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  background: #252836;
+}
+
+.kbeauty-mobile-cart-text-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 190px;
+}
+
+.kbeauty-mobile-cart-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: #FFB800;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.kbeauty-mobile-cart-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.kbeauty-mobile-cart-price {
+  font-size: 11px;
+  font-weight: 700;
+  color: #25F4EE;
+}
+
+.kbeauty-mobile-cart-btn {
+  background: linear-gradient(135deg, #FE2C55 0%, #FF1744 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(254, 44, 85, 0.4);
+}
+
+.kbeauty-mobile-cart-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* Dedicated Verified Shop Box below links */
+.kbeauty-verified-shop-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.14), rgba(254, 44, 85, 0.08));
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box !important;
+}
+
+.verified-shop-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.verified-shop-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.verified-shop-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.verified-shop-title {
+  font-size: 10px;
+  color: #FFB800;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.verified-shop-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.verified-shop-btn {
+  background: #FFB800;
+  color: #000000 !important;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box !important;
+}
+
+.verified-shop-btn:hover {
+  background: #FFCA28;
+  transform: translateY(-1px);
+}
+
+
+

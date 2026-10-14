@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "Kbeautyhub - TikTok View Giỏ Hàng PC",
+  "version": "1.9.6",
+  "author": "Son Designer",
+  "description": "Developed by Son Designer. Xem video TikTok Shop và liên kết gian hàng người bán trên PC.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "Kbeautyhub - TikTok View"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "*://*.tiktok.com/*",
+    "*://shop.tiktok.com/*",
+    "*://*.tikwm.com/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*",
+    "https://*/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.tiktok.com/*"],
+      "js": ["scripts/interceptor.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.tiktok.com/*"],
+      "js": ["scripts/content.js"],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon-16.png",
+        "icons/icon-48.png",
+        "icons/icon-128.png"
+      ],
+      "matches": ["*://*.tiktok.com/*"]
+    }
+  ]
+}
