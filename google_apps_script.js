@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * KBEAUTYHUB TIKTOK VIEW - GOOGLE APPS SCRIPT CLOUD BACKEND
- * Phiên bản: v1.9.7 | Tác giả: Son Designer
+ * Phiên bản: v1.9.8 | Tác giả: Son Designer
  * ============================================================
  * 
  * ĐÂY LÀ HỆ THỐNG MÁY CHỦ CLOUD HOÀN TOÀN MIỄN PHÍ 100% CỦA GOOGLE.
@@ -116,9 +116,9 @@ function ensureSheetsSetup(ss) {
   if (!cfgSheet) {
     cfgSheet = ss.insertSheet('Config');
     cfgSheet.appendRow(['Cài Đặt', 'Giá Trị', 'Ghi Chú']);
-    cfgSheet.appendRow(['latest_version', '1.9.7', 'Phiên bản mới nhất của tiện ích']);
+    cfgSheet.appendRow(['latest_version', '1.9.8', 'Phiên bản mới nhất của tiện ích']);
     cfgSheet.appendRow(['guest_password', 'guest2026', 'Mật khẩu chung cấp cho khách']);
-    cfgSheet.appendRow(['download_url', 'https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.7/Kbeautyhub-Tiktok-View-v1.9.7.zip', 'Link tải file zip phiên bản mới']);
+    cfgSheet.appendRow(['download_url', 'https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.8/Kbeautyhub-Tiktok-View-v1.9.8.zip', 'Link tải file zip phiên bản mới']);
     cfgSheet.appendRow(['system_notice', 'Chào mừng bạn đến với Kbeautyhub TikTok View!', 'Thông báo đẩy cho người dùng']);
     cfgSheet.getRange(1, 1, 1, 3).setBackground('#374151').setFontColor('#FFB800').setFontWeight('bold');
     cfgSheet.setFrozenRows(1);

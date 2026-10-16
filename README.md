@@ -1,4 +1,4 @@
-# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v1.9.7)
+# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v1.9.8)
 
 > **Developed by Son Designer • Kbeautyhub**  
 > Tiện ích mở rộng Chrome Extension Manifest V3 xem trực tiếp thông tin sản phẩm, giá bán, link mua sắm TikTok Shop và tên Shop bán sản phẩm từ video có gắn giỏ hàng ngay trên máy tính (PC/Laptop).
@@ -8,7 +8,7 @@
 ## 🚀 LINK CÀI ĐẶT ONLINE TRỰC TIẾP (GITHUB)
 
 - 📥 **Tải bản cài đặt nhanh (.ZIP):**  
-  [**Tải Kbeautyhub-Tiktok-View-v1.9.7.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.7/Kbeautyhub-Tiktok-View-v1.9.7.zip)
+  [**Tải Kbeautyhub-Tiktok-View-v1.9.8.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.8/Kbeautyhub-Tiktok-View-v1.9.8.zip)
 - 🌐 **Repository GitHub:**  
   [https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view)
 
@@ -23,7 +23,7 @@
 
 ---
 
-## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v1.9.7
+## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v1.9.8
 
 1. **Nhận diện Tên Shop bán sản phẩm tức thì (100% không kẹt loading):**
    - Tự động bóc tách tên shop người bán (`shop_name`, `seller_name`, `brand_name`) từ dữ liệu TikTok.
