@@ -698,19 +698,22 @@
   // Check if an element belongs to the right-hand sidebar (comments, reactions, author info)
   function isInsideRightSidebar(el) {
     if (!el) return false;
+
+    // Position check: in TikTok PC layout, left video stage is strictly on the left (< 55% screen width)
+    const r = el.getBoundingClientRect();
+    if (r.left < window.innerWidth * 0.55) return false;
+
     const sidebar = el.closest('[data-e2e="comment-list"]') || 
                     el.closest('div[class*="Comment"]') ||
                     el.closest('div[class*="RightContainer"]') ||
                     el.closest('div[class*="DivSidebarContainer"]') ||
-                    el.closest('div[class*="DivContentContainer"]') ||
                     el.closest('div[class*="TabContainer"]') ||
                     el.closest('div[class*="DivInfoContainer"]') ||
                     el.closest('div[class*="Description"]') ||
                     el.closest('div[class*="BottomCommentContainer"]');
     if (sidebar) return true;
 
-    // Check position: in profile detail modal, the right sidebar starts around vw - 600px
-    const r = el.getBoundingClientRect();
+    // In profile detail modal, the right sidebar starts around vw - 600px
     if (window.innerWidth > 900 && r.left > window.innerWidth - 650 && r.width < 650) {
       return true;
     }
@@ -722,21 +725,39 @@
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    // 1. Direct Play Button Anchor (when in detail modal / blocked mode)
-    // Find the big play button in the left stage and use its enclosing stage container
+    // 1. Direct Anchor from native video if present on the LEFT (< 55% screen width)
+    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    for (const nativeVid of nativeVideos) {
+      if (isInsideRightSidebar(nativeVid)) continue;
+      const nr = nativeVid.getBoundingClientRect();
+      if (nr.left < vw * 0.55 && nr.width > 100) {
+        let p = nativeVid.parentElement;
+        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
+          if (isInsideRightSidebar(p)) break;
+          const r = p.getBoundingClientRect();
+          if (r.width >= 240 && r.height >= 280 && r.left < vw * 0.55) {
+            return p;
+          }
+          p = p.parentElement;
+        }
+        if (nativeVid.parentElement) return nativeVid.parentElement;
+      }
+    }
+
+    // 2. Direct Play Button Anchor (big play button in the left stage)
     const playButtons = document.querySelectorAll('button[class*="play" i], div[class*="play" i], div[class*="Play" i], [data-e2e*="play"], svg polygon, svg path');
     for (const pb of playButtons) {
       if (isInsideRightSidebar(pb)) continue;
       const pr = pb.getBoundingClientRect();
-      if (pr.left < vw * 0.65 && pr.width < 250 && pr.top > 80 && pr.bottom < vh - 40) {
+      if (pr.left < vw * 0.55 && pr.width < 250 && pr.top > 80 && pr.bottom < vh - 40) {
         let p = pb.parentElement;
         while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && !isInsideRightSidebar(p)) {
           const r = p.getBoundingClientRect();
-          if (r.width >= 280 && r.height >= 340 && r.left < vw * 0.65) {
+          if (r.width >= 260 && r.height >= 300 && r.left < vw * 0.55) {
             const sub = p.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
             if (sub && sub !== p && !isInsideRightSidebar(sub)) {
               const sr = sub.getBoundingClientRect();
-              if (sr.width >= 240 && sr.height >= 280) return sub;
+              if (sr.width >= 240 && sr.height >= 260) return sub;
             }
             return p;
           }
@@ -745,7 +766,7 @@
       }
     }
 
-    // 2. Primary video stage containers on the LEFT (strictly excluding right sidebar)
+    // 3. Primary video stage containers on the LEFT (strictly excluding right sidebar)
     const modalLeftSelectors = [
       '[data-e2e="browse-video"]',
       '[data-e2e="browse-video-container"]',
@@ -765,7 +786,7 @@
       for (const el of candidates) {
         if (isInsideRightSidebar(el)) continue;
         const r = el.getBoundingClientRect();
-        if (r.width >= 260 && r.height >= 260 && r.left < vw * 0.65) {
+        if (r.width >= 240 && r.height >= 260 && r.left < vw * 0.55) {
           const innerWrapper = el.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"]');
           if (innerWrapper && !isInsideRightSidebar(innerWrapper)) {
             const ir = innerWrapper.getBoundingClientRect();
@@ -776,7 +797,7 @@
       }
     }
 
-    // 3. Anchor from visible video controls strictly on the LEFT stage (Speaker mute button, Close button)
+    // 4. Anchor from visible video controls strictly on the LEFT stage (Speaker mute button, Close button)
     const leftControlEls = [
       document.querySelector('[data-e2e="video-sound"]'),
       document.querySelector('button[aria-label*="ute"]'),
@@ -791,11 +812,11 @@
       while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && p.id !== 'kbeauty-root') {
         if (isInsideRightSidebar(p)) break;
         const r = p.getBoundingClientRect();
-        if (r.width >= 260 && r.height >= 320 && r.left < vw * 0.65) {
+        if (r.width >= 240 && r.height >= 300 && r.left < vw * 0.55) {
           const sub = p.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
           if (sub && sub !== p && !isInsideRightSidebar(sub)) {
             const sr = sub.getBoundingClientRect();
-            if (sr.width >= 240 && sr.height >= 280) return sub;
+            if (sr.width >= 240 && sr.height >= 260) return sub;
           }
           return p;
         }
@@ -803,22 +824,7 @@
       }
     }
 
-    // 4. Anchor from native video if present on the LEFT
-    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
-    for (const nativeVid of nativeVideos) {
-      if (isInsideRightSidebar(nativeVid)) continue;
-      let p = nativeVid.parentElement;
-      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
-        if (isInsideRightSidebar(p)) break;
-        const r = p.getBoundingClientRect();
-        if (r.width > 240 && r.height > 240 && r.left < vw * 0.65) {
-          return p;
-        }
-        p = p.parentElement;
-      }
-    }
-
-    // 5. Fallback: Search all divs in viewport on the left side
+    // 5. Fallback: Search all divs in viewport strictly on the left side (< 55% screen width)
     const divs = document.querySelectorAll('div, section');
     let best = null;
     let maxArea = 0;
@@ -828,10 +834,10 @@
       if (isInsideRightSidebar(d)) continue;
       const r = d.getBoundingClientRect();
       if (r.width > vw - 60 && r.height > vh - 20) continue;
-      if (r.left < 20 && r.width < 260) continue;
-      if (r.left > vw * 0.65) continue; // strictly skip right side
+      if (r.left < 10 && r.width < 220) continue;
+      if (r.left > vw * 0.55) continue; // strictly skip right side
 
-      if (r.width >= 260 && r.height >= 340 && r.top < 180 && r.bottom > 250) {
+      if (r.width >= 240 && r.height >= 300 && r.top < 200 && r.bottom > 250) {
         const area = r.width * r.height;
         if (area > maxArea) {
           maxArea = area;
@@ -849,14 +855,12 @@
     // 1. Blocker element explicitly found in DOM
     if (findBlockerElement()) return true;
 
-    // 2. Video has TikTok Shop anchors and native video is blocked/hidden or errored
-    if (videoData.hasShopCart) {
-      const nativeVid = document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
-      if (!nativeVid) return true;
-      const rect = nativeVid.getBoundingClientRect();
-      if (rect.width < 120 || rect.height < 120) return true;
-      if (nativeVid.error) return true;
-    }
+    // 2. Video has TikTok Shop cart - on PC, shop videos should always play via unblocked player over the play button
+    if (videoData.hasShopCart) return true;
+
+    // 3. Fallback: native video is corrupted or errored
+    const nativeVid = document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    if (nativeVid && nativeVid.error) return true;
 
     return false;
   }
@@ -895,10 +899,9 @@
 
     // 2. Find video stage container
     const container = findMainVideoStage();
-    const nativeVid = document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
 
     if (container && container !== document.body && container.id !== 'root' && container.id !== '__next') {
-      console.log('[Kbeautyhub] Mounting unblocked HTML5 player (v1.6 style) for vid:', currentVid, 'container:', container);
+      console.log('[Kbeautyhub] Mounting unblocked HTML5 player on left stage for vid:', currentVid, 'container:', container);
       lastMountedStreamUrl = streamUrl;
       lastMountedVideoId = currentVid;
 
@@ -906,7 +909,7 @@
       // If container contains the controls/sidebar, find its video-specific child wrapper
       let targetStage = container;
       const subWrapper = container.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
-      if (subWrapper && subWrapper !== container) {
+      if (subWrapper && subWrapper !== container && !isInsideRightSidebar(subWrapper)) {
         const sr = subWrapper.getBoundingClientRect();
         if (sr.width > 220 && sr.height > 220) {
           targetStage = subWrapper;
@@ -925,10 +928,14 @@
         }
       });
 
-      // Ensure targetStage has relative positioning for absolute overlay
+      // Ensure targetStage has relative positioning and minHeight for absolute overlay
       const compPos = window.getComputedStyle(targetStage).position;
       if (compPos === 'static') {
         targetStage.style.position = 'relative';
+      }
+      const sRect = targetStage.getBoundingClientRect();
+      if (sRect.height < 320) {
+        targetStage.style.minHeight = '520px';
       }
 
       // Remove any previous instance of player box
@@ -943,6 +950,7 @@
         left: 0;
         width: 100%;
         height: 100%;
+        min-height: 480px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -964,10 +972,22 @@
       `;
 
       // Hide native video or play button beneath so it does not peek through
-      targetStage.querySelectorAll('video:not(#kbeauty-main-video), div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i]').forEach(el => {
+      targetStage.querySelectorAll('video:not(#kbeauty-main-video), div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i], svg[class*="play" i]').forEach(el => {
         el.style.opacity = '0';
         el.style.pointerEvents = 'none';
+        el.style.display = 'none';
       });
+
+      // Also hide play buttons in outer container if outside targetStage
+      if (container && container !== targetStage) {
+        container.querySelectorAll('div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i]').forEach(el => {
+          if (!isInsideRightSidebar(el)) {
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+            el.style.display = 'none';
+          }
+        });
+      }
 
       targetStage.appendChild(playerBox);
 
@@ -1849,11 +1869,11 @@
       }
     }
 
-    // 3. Active Background Deep Scan: If cart is still unconfirmed, query TikWM for full anchors on scroll
-    if (vid && (!data || !data.hasShopCart || (data.products && data.products.length === 0))) {
+    // 3. Active Background Deep Scan: If cart is still unconfirmed or streamUrl missing, query TikWM
+    if (vid && (!data || !data.hasShopCart || !data.playAddr || (data.products && data.products.length === 0))) {
       if (!resolvingSet.has(vid)) {
         resolveStreamViaTikWM(vid).then(updated => {
-          if (updated && updated.hasShopCart && currentActiveVideoId === vid) {
+          if (updated && currentActiveVideoId === vid) {
             updateUI();
           }
         }).catch(() => {});
@@ -1864,6 +1884,14 @@
     const shouldUnblock = isVideoBlocked(data);
     if (shouldUnblock && data && data.playAddr) {
       unblockAndPlay(data.playAddr);
+    } else if (shouldUnblock && (!data || !data.playAddr)) {
+      if (!resolvingSet.has(vid)) {
+        resolveStreamViaTikWM(vid).then(updated => {
+          if (updated && updated.playAddr && currentActiveVideoId === vid) {
+            unblockAndPlay(updated.playAddr);
+          }
+        }).catch(() => {});
+      }
     } else {
       // NORMAL VIDEO: Do NOT touch native player!
       // If custom player was mounted from previous video, remove it cleanly so normal video plays natively!

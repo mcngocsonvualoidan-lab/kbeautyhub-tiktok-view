@@ -1,4 +1,4 @@
-# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v1.9.8)
+# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v1.9.9)
 
 > **Developed by Son Designer • Kbeautyhub**  
 > Tiện ích mở rộng Chrome Extension Manifest V3 xem trực tiếp thông tin sản phẩm, giá bán, link mua sắm TikTok Shop và tên Shop bán sản phẩm từ video có gắn giỏ hàng ngay trên máy tính (PC/Laptop).
@@ -8,7 +8,7 @@
 ## 🚀 LINK CÀI ĐẶT ONLINE TRỰC TIẾP (GITHUB)
 
 - 📥 **Tải bản cài đặt nhanh (.ZIP):**  
-  [**Tải Kbeautyhub-Tiktok-View-v1.9.8.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.8/Kbeautyhub-Tiktok-View-v1.9.8.zip)
+  [**Tải Kbeautyhub-Tiktok-View-v1.9.9.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v1.9.9/Kbeautyhub-Tiktok-View-v1.9.9.zip)
 - 🌐 **Repository GitHub:**  
   [https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view)
 
@@ -23,9 +23,14 @@
 
 ---
 
-## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v1.9.8
+## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v1.9.9
 
-1. **Nhận diện Tên Shop bán sản phẩm tức thì (100% không kẹt loading):**
+1. **Hiển thị video đè lên vị trí nút Play (Khung video bên trái):**
+   - Khi vào trang cá nhân của từng Shop / Creator và mở video có gắn giỏ hàng, video HTML5 được giải mã và gắn chuẩn xác lên khung phát bên trái đè lên nút Play, tự động phát mượt mà.
+   - **Bảo toàn 100% thanh bình luận, lượt tương tác (Like, Share, Reaction) bên phải**, hoàn toàn không bị che khuất hay can thiệp.
+2. **Nhận diện Giỏ hàng tức thì khi cuộn trang:**
+   - Quét DOM anchor theo thời gian thực (nhận diện các thẻ shop như `Rosaleen`, `TikTok Shop`), không cần phải ấn F5 tải lại trang.
+3. **Nhận diện Tên Shop bán sản phẩm tức thì (100% không kẹt loading):**
    - Tự động bóc tách tên shop người bán (`shop_name`, `seller_name`, `brand_name`) từ dữ liệu TikTok.
    - Fallback thông minh sang Gian hàng Creator (`Author Nickname (@uniqueId)`) kèm nút `↗️ Vào Shop` mở trực tiếp gian hàng trên TikTok.
 2. **Xem và phát video mượt mà trên PC:**
