@@ -1,4 +1,4 @@
-# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v2.0.2)
+# 🛍️ Kbeautyhub - TikTok View Giỏ Hàng & Shop PC (v2.0.3)
 
 > **Developed by Son Designer • Kbeautyhub**  
 > Tiện ích mở rộng Chrome Extension Manifest V3 xem trực tiếp thông tin sản phẩm, giá bán, link mua sắm TikTok Shop và tên Shop bán sản phẩm từ video có gắn giỏ hàng ngay trên máy tính (PC/Laptop).
@@ -8,7 +8,7 @@
 ## 🚀 LINK CÀI ĐẶT ONLINE TRỰC TIẾP (GITHUB)
 
 - 📥 **Tải bản cài đặt nhanh (.ZIP):**  
-  [**Tải Kbeautyhub-Tiktok-View-v2.0.2.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v2.0.2/Kbeautyhub-Tiktok-View-v2.0.2.zip)
+  [**Tải Kbeautyhub-Tiktok-View-v2.0.3.zip**](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view/releases/download/v2.0.3/Kbeautyhub-Tiktok-View-v2.0.3.zip)
 - 🌐 **Repository GitHub:**  
   [https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view](https://github.com/mcngocsonvualoidan-lab/kbeautyhub-tiktok-view)
 
@@ -23,13 +23,12 @@
 
 ---
 
-## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v2.0.2
+## 🌟 TÍNH NĂNG NỔI BẬT TRÊN BẢN v2.0.3
 
-1. **Khắc phục triệt để lỗi lệch vị trí video & màn hình trắng:**
-   - Căn giữa hoàn hảo (Horizontal & Vertical Center) trên khung phát video bên trái theo tỷ lệ chuẩn 9:16.
-   - Hỗ trợ mượt mà cả chế độ **Xem Modal từ trang cá nhân Shop** và chế độ **Xem link trực tiếp / F5 tải lại trang**.
-   - Nút Đóng (X) và Thanh tìm kiếm luôn nổi ở trên cùng (`z-index: 10000`) giúp đóng mở tiện lợi.
-   - **Bảo toàn 100% cột bình luận, reactions (Like, Share, Thả tim, Lưu) và menu điều hướng bên trái/phải**.
+1. **Khắc phục triệt để lỗi cuộn sang video thứ 2, thứ 3 có tiếng nhưng mất hình:**
+   - Thuật toán định vị khung phát nhận diện theo toạ độ Viewport Overlap thực tế trên màn hình, không còn bị gắn nhầm vào thẻ video cũ đã cuộn khuất lên trên.
+   - Nếu video đang phát bình thường trên PC (không bị TikTok chặn), tiện ích bảo toàn phát native mượt mà, không can thiệp ẩn video gây trắng màn hình.
+   - Tự động gắn chính xác vào đúng khung video đang hiển thị trước mắt người dùng.
 2. **Nhận diện Giỏ hàng tức thì khi cuộn trang:**
    - Quét DOM anchor theo thời gian thực (nhận diện các thẻ shop như `Rosaleen`, `TikTok Shop`), không cần phải ấn F5 tải lại trang.
 3. **Nhận diện Tên Shop bán sản phẩm tức thì (100% không kẹt loading):**

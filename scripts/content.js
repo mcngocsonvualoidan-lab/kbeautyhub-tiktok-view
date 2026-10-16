@@ -671,10 +671,19 @@
 
   // Robust leaf-node finder for the blocker toast (never matches parent containers)
   function findBlockerElement() {
-    const all = document.querySelectorAll('div, p, span');
+    const all = document.querySelectorAll('div, p, span, h1, h2, h3');
     for (const el of all) {
-      if (el.children.length === 0 && (el.textContent || '').includes('Xem video TikTok Shop trong ứng dụng TikTok')) {
-        return el;
+      if (el.children.length <= 1) {
+        const txt = (el.textContent || '').trim();
+        if (txt.includes('Xem video TikTok Shop') ||
+            txt.includes('Xem video trên ứng dụng') ||
+            txt.includes('Xem video trong ứng dụng') ||
+            txt.includes('Watch TikTok Shop') ||
+            txt.includes('Watch in the TikTok app') ||
+            txt.includes('Tải ứng dụng để xem video') ||
+            txt.includes('không thể phát trên trình duyệt')) {
+          return el;
+        }
       }
     }
     return null;
@@ -748,16 +757,30 @@
     return false;
   }
 
+  // Calculate the visible area of an element currently in the viewport
+  function getVisibleViewportScore(el, minLeft, maxRight) {
+    if (!el) return 0;
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const vTop = Math.max(0, r.top);
+    const vBottom = Math.min(vh, r.bottom);
+    const vLeft = Math.max(minLeft, r.left);
+    const vRight = Math.min(maxRight, r.right);
+    if (vBottom <= vTop || vRight <= vLeft) return 0;
+    return (vBottom - vTop) * (vRight - vLeft);
+  }
+
   // Ultra-robust finder for the main visible video stage on TikTok PC
-  // Supports both Modal View (from profile/search) and Direct Page/Feed View
-  function findMainVideoStage() {
+  // Viewport-aware: ALWAYS targets the active video visible in viewport, never off-screen scrolled videos
+  function findMainVideoStage(targetVid) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const sidebarStartX = Math.max(vw * 0.58, vw - 560);
     const closeBtn = document.querySelector('[data-e2e="browse-close"]');
     const isModal = Boolean(closeBtn);
 
-    // MODE 1: MODAL VIEW (User clicked video from profile/search)
+    // MODE 1: MODAL VIEW (Popup from shop profile / search)
     if (isModal) {
       // 1. Ancestor of Close Button ([data-e2e="browse-close"]) that spans the left stage
       let p = closeBtn.parentElement;
@@ -818,41 +841,29 @@
     const leftNav = document.querySelector('[data-e2e="nav-bar"], [data-e2e="side-nav"], nav, aside, div[class*="SideNav"], div[class*="DivSideNavContainer"]');
     const leftNavRight = leftNav ? Math.min(leftNav.getBoundingClientRect().right, 300) : 0;
     const minVideoLeft = Math.max(0, leftNavRight - 20);
+    const maxVideoRight = sidebarStartX + 40;
 
-    // 1. Check native video element in the center column
-    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
-    for (const nativeVid of nativeVideos) {
-      if (isInsideRightSidebar(nativeVid)) continue;
-      let p = nativeVid.parentElement;
-      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
-        if (isInsideRightSidebar(p)) break;
-        const r = p.getBoundingClientRect();
-        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
-          return p;
+    const currentVid = targetVid || getUrlVideoId();
+
+    // 1. Precise Match: Look for explicit video card belonging to currentVid in DOM
+    if (currentVid) {
+      const vidLink = document.querySelector(`a[href*="/video/${currentVid}"]`);
+      if (vidLink) {
+        const itemContainer = vidLink.closest('[data-e2e="recommend-list-item-container"], div[class*="DivItemContainer"], div[class*="FeedVideo"], [data-e2e="feed-video"]');
+        if (itemContainer) {
+          const innerWrapper = itemContainer.querySelector('div[class*="DivVideoWrapper"], div[class*="DivPlayerContainer"], div[class*="DivBasicPlayerWrapper"], [data-e2e="video-container"], [data-e2e="feed-video"]');
+          if (innerWrapper && !isInsideRightSidebar(innerWrapper)) {
+            const ir = innerWrapper.getBoundingClientRect();
+            if (ir.width >= 240 && ir.height >= 260) {
+              return innerWrapper;
+            }
+          }
+          return itemContainer;
         }
-        p = p.parentElement;
-      }
-      if (nativeVid.parentElement && !isInsideRightSidebar(nativeVid.parentElement)) {
-        return nativeVid.parentElement;
       }
     }
 
-    // 2. Check parent of play button / blocker element in the center column
-    const playButtons = document.querySelectorAll('div[class*="Play" i], button[class*="play" i], [data-e2e*="play"], svg polygon');
-    for (const pb of playButtons) {
-      if (isInsideRightSidebar(pb)) continue;
-      let p = pb.parentElement;
-      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
-        if (isInsideRightSidebar(p)) break;
-        const r = p.getBoundingClientRect();
-        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
-          return p;
-        }
-        p = p.parentElement;
-      }
-    }
-
-    // 3. Selectors for video wrappers in feed/page
+    // 2. Viewport Overlap Match: Select candidate with GREATEST VISIBLE OVERLAP in active screen
     const pageVideoSelectors = [
       '[data-e2e="feed-video"]',
       'div[class*="DivVideoWrapper"]',
@@ -864,35 +875,51 @@
       '[data-e2e="recommend-list-item-container"]'
     ];
 
+    let bestCandidate = null;
+    let maxVisibleScore = 0;
+
     for (const sel of pageVideoSelectors) {
       const candidates = document.querySelectorAll(sel);
       for (const el of candidates) {
         if (isInsideRightSidebar(el)) continue;
         const r = el.getBoundingClientRect();
-        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
-          return el;
+        if (r.width >= 240 && r.height >= 260 && r.left >= minVideoLeft && r.left < sidebarStartX - 100) {
+          const score = getVisibleViewportScore(el, minVideoLeft, maxVideoRight);
+          if (score > maxVisibleScore) {
+            maxVisibleScore = score;
+            bestCandidate = el;
+          }
         }
       }
     }
 
-    // 4. Fallback search across divs
-    const divs = document.querySelectorAll('div, section');
-    let bestPage = null;
-    let maxArea = 0;
-    for (const d of divs) {
-      if (d.id === 'kbeauty-root' || d.id === 'root' || d.id === '__next' || d === document.body) continue;
-      if (d.closest('#kbeauty-root') || d.closest('#kbeauty-drawer')) continue;
-      if (isInsideRightSidebar(d)) continue;
-      const r = d.getBoundingClientRect();
-      if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
-        const area = r.width * r.height;
-        if (area > maxArea) {
-          maxArea = area;
-          bestPage = d;
+    if (bestCandidate && maxVisibleScore > 40000) {
+      return bestCandidate;
+    }
+
+    // 3. Fallback: Search native videos visible in viewport
+    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    let bestNativeParent = null;
+    let maxNativeScore = 0;
+    for (const nv of nativeVideos) {
+      if (isInsideRightSidebar(nv)) continue;
+      const score = getVisibleViewportScore(nv, minVideoLeft, maxVideoRight);
+      if (score > maxNativeScore) {
+        maxNativeScore = score;
+        let p = nv.parentElement;
+        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && !isInsideRightSidebar(p)) {
+          const pr = p.getBoundingClientRect();
+          if (pr.width >= 240 && pr.height >= 260) {
+            bestNativeParent = p;
+            break;
+          }
+          p = p.parentElement;
         }
       }
     }
-    return bestPage;
+    if (bestNativeParent) return bestNativeParent;
+
+    return bestCandidate;
   }
 
   // Check if current video is ACTUALLY blocked by TikTok Shop
@@ -902,12 +929,28 @@
     // 1. Blocker element explicitly found in DOM
     if (findBlockerElement()) return true;
 
-    // 2. Video has TikTok Shop cart - on PC, shop videos should always play via unblocked player over the play button
-    if (videoData.hasShopCart) return true;
+    // 2. Check the native video in the ACTIVE visible stage
+    const activeStage = findMainVideoStage();
+    const activeNativeVid = activeStage ? activeStage.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)') : document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
 
-    // 3. Fallback: native video is corrupted or errored
-    const nativeVid = document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
-    if (nativeVid && nativeVid.error) return true;
+    // If native video is ALREADY PLAYING smoothly without any blocker, DO NOT block/replace it!
+    if (activeNativeVid && !activeNativeVid.paused && activeNativeVid.currentTime > 0.1 && activeNativeVid.readyState >= 2 && !activeNativeVid.error) {
+      return false;
+    }
+
+    // 3. Video has TikTok Shop cart:
+    // If native video is missing, paused, errored, or has zero dimensions, it is blocked on PC
+    if (videoData.hasShopCart) {
+      if (!activeNativeVid) return true;
+      if (activeNativeVid.error) return true;
+      const rect = activeNativeVid.getBoundingClientRect();
+      if (rect.width < 100 || rect.height < 100) return true;
+      // If paused or stalled while user is on this video, it's blocked by PC shop restrictions
+      if (activeNativeVid.paused || activeNativeVid.readyState < 2) return true;
+    }
+
+    // 4. Fallback: native video has explicit error
+    if (activeNativeVid && activeNativeVid.error) return true;
 
     return false;
   }
@@ -970,14 +1013,13 @@
     // Use full left-stage container directly to guarantee perfect centering
     let targetStage = container;
 
-    // Silence any other videos before clearing
+    // Pause and mute other videos on page to prevent sound overlap (do not hide globally)
     document.querySelectorAll('video, audio').forEach(v => {
       if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video') {
         try {
           v.pause();
           v.muted = true;
           v.volume = 0;
-          v.style.display = 'none';
         } catch (e) {}
       }
     });
