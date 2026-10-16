@@ -536,16 +536,37 @@
 
     try {
       console.log('[Kbeautyhub] Resolving stream via Background SW for video:', videoId);
-      const res = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: 'RESOLVE_TIKWM', videoId }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.warn('[Kbeautyhub] Background message error:', chrome.runtime.lastError);
-            resolve(null);
-          } else {
-            resolve(response);
-          }
-        });
+      let res = await new Promise((resolve) => {
+        try {
+          chrome.runtime.sendMessage({ action: 'RESOLVE_TIKWM', videoId }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.warn('[Kbeautyhub] Background message error:', chrome.runtime.lastError);
+              resolve(null);
+            } else {
+              resolve(response);
+            }
+          });
+        } catch (e) {
+          resolve(null);
+        }
       });
+
+      // Fallback: direct fetch if background SW didn't respond
+      if (!res || !res.success || !res.data) {
+        try {
+          console.log('[Kbeautyhub] Trying direct fetch fallback for TikWM:', videoId);
+          const fullUrl = `https://www.tiktok.com/@user/video/${videoId}`;
+          const directFetch = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(fullUrl)}`);
+          if (directFetch.ok) {
+            const dj = await directFetch.json();
+            if (dj && dj.code === 0) {
+              res = { success: true, data: dj };
+            }
+          }
+        } catch (dfErr) {
+          console.warn('[Kbeautyhub] Direct fetch error:', dfErr);
+        }
+      }
 
       if (res && res.success && res.data && res.data.code === 0 && res.data.data) {
         const d = res.data.data;
@@ -699,9 +720,10 @@
   function isInsideRightSidebar(el) {
     if (!el) return false;
 
-    // Position check: in TikTok PC layout, left video stage is strictly on the left (< 55% screen width)
+    // Position check: in TikTok PC layout, the right sidebar starts around (window.innerWidth - 560px)
+    const sidebarStartX = Math.max(window.innerWidth * 0.58, window.innerWidth - 560);
     const r = el.getBoundingClientRect();
-    if (r.left < window.innerWidth * 0.55) return false;
+    if (r.left < sidebarStartX) return false;
 
     const sidebar = el.closest('[data-e2e="comment-list"]') || 
                     el.closest('div[class*="Comment"]') ||
@@ -713,8 +735,7 @@
                     el.closest('div[class*="BottomCommentContainer"]');
     if (sidebar) return true;
 
-    // In profile detail modal, the right sidebar starts around vw - 600px
-    if (window.innerWidth > 900 && r.left > window.innerWidth - 650 && r.width < 650) {
+    if (r.left >= sidebarStartX && r.width < 620) {
       return true;
     }
     return false;
@@ -724,41 +745,18 @@
   function findMainVideoStage() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const sidebarStartX = Math.max(vw * 0.58, vw - 560);
 
-    // 1. Direct Anchor from native video if present on the LEFT (< 55% screen width)
-    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
-    for (const nativeVid of nativeVideos) {
-      if (isInsideRightSidebar(nativeVid)) continue;
-      const nr = nativeVid.getBoundingClientRect();
-      if (nr.left < vw * 0.55 && nr.width > 100) {
-        let p = nativeVid.parentElement;
-        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
-          if (isInsideRightSidebar(p)) break;
-          const r = p.getBoundingClientRect();
-          if (r.width >= 240 && r.height >= 280 && r.left < vw * 0.55) {
-            return p;
-          }
-          p = p.parentElement;
-        }
-        if (nativeVid.parentElement) return nativeVid.parentElement;
-      }
-    }
-
-    // 2. Direct Play Button Anchor (big play button in the left stage)
-    const playButtons = document.querySelectorAll('button[class*="play" i], div[class*="play" i], div[class*="Play" i], [data-e2e*="play"], svg polygon, svg path');
+    // 1. Direct Anchor: find the big play button or play icon on the left stage
+    const playButtons = document.querySelectorAll('div[class*="Play" i], button[class*="play" i], [data-e2e*="play"], svg polygon, svg[class*="play" i]');
     for (const pb of playButtons) {
       if (isInsideRightSidebar(pb)) continue;
       const pr = pb.getBoundingClientRect();
-      if (pr.left < vw * 0.55 && pr.width < 250 && pr.top > 80 && pr.bottom < vh - 40) {
+      if (pr.left < sidebarStartX && pr.top > 60 && pr.bottom < vh - 40) {
         let p = pb.parentElement;
         while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && !isInsideRightSidebar(p)) {
           const r = p.getBoundingClientRect();
-          if (r.width >= 260 && r.height >= 300 && r.left < vw * 0.55) {
-            const sub = p.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
-            if (sub && sub !== p && !isInsideRightSidebar(sub)) {
-              const sr = sub.getBoundingClientRect();
-              if (sr.width >= 240 && sr.height >= 260) return sub;
-            }
+          if (r.width >= 240 && r.height >= 280 && r.left < sidebarStartX) {
             return p;
           }
           p = p.parentElement;
@@ -766,7 +764,7 @@
       }
     }
 
-    // 3. Primary video stage containers on the LEFT (strictly excluding right sidebar)
+    // 2. Primary video stage containers on the LEFT
     const modalLeftSelectors = [
       '[data-e2e="browse-video"]',
       '[data-e2e="browse-video-container"]',
@@ -786,7 +784,7 @@
       for (const el of candidates) {
         if (isInsideRightSidebar(el)) continue;
         const r = el.getBoundingClientRect();
-        if (r.width >= 240 && r.height >= 260 && r.left < vw * 0.55) {
+        if (r.width >= 240 && r.height >= 260 && r.left < sidebarStartX) {
           const innerWrapper = el.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"]');
           if (innerWrapper && !isInsideRightSidebar(innerWrapper)) {
             const ir = innerWrapper.getBoundingClientRect();
@@ -794,6 +792,25 @@
           }
           return el;
         }
+      }
+    }
+
+    // 3. Direct Anchor from native video if present on the LEFT (< sidebarStartX)
+    const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    for (const nativeVid of nativeVideos) {
+      if (isInsideRightSidebar(nativeVid)) continue;
+      const nr = nativeVid.getBoundingClientRect();
+      if (nr.left < sidebarStartX && nr.width > 80) {
+        let p = nativeVid.parentElement;
+        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
+          if (isInsideRightSidebar(p)) break;
+          const r = p.getBoundingClientRect();
+          if (r.width >= 240 && r.height >= 280 && r.left < sidebarStartX) {
+            return p;
+          }
+          p = p.parentElement;
+        }
+        if (nativeVid.parentElement) return nativeVid.parentElement;
       }
     }
 
@@ -812,7 +829,7 @@
       while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && p.id !== 'kbeauty-root') {
         if (isInsideRightSidebar(p)) break;
         const r = p.getBoundingClientRect();
-        if (r.width >= 240 && r.height >= 300 && r.left < vw * 0.55) {
+        if (r.width >= 240 && r.height >= 300 && r.left < sidebarStartX) {
           const sub = p.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
           if (sub && sub !== p && !isInsideRightSidebar(sub)) {
             const sr = sub.getBoundingClientRect();
@@ -824,7 +841,7 @@
       }
     }
 
-    // 5. Fallback: Search all divs in viewport strictly on the left side (< 55% screen width)
+    // 5. Fallback: Search all divs in viewport strictly on the left side (< sidebarStartX)
     const divs = document.querySelectorAll('div, section');
     let best = null;
     let maxArea = 0;
@@ -835,7 +852,7 @@
       const r = d.getBoundingClientRect();
       if (r.width > vw - 60 && r.height > vh - 20) continue;
       if (r.left < 10 && r.width < 220) continue;
-      if (r.left > vw * 0.55) continue; // strictly skip right side
+      if (r.left > sidebarStartX) continue; // strictly skip right side
 
       if (r.width >= 240 && r.height >= 300 && r.top < 200 && r.bottom > 250) {
         const area = r.width * r.height;
@@ -891,143 +908,161 @@
       return;
     }
 
-    // 1. Hide the blocker toast safely if present
-    const blocker = findBlockerElement();
-    if (blocker) {
-      blocker.style.display = 'none';
-    }
+    // 1. Hide all blocker toasts and tooltips safely
+    document.querySelectorAll('div, p, span').forEach(el => {
+      if ((el.textContent || '').includes('Xem video TikTok Shop')) {
+        el.style.display = 'none';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        if (el.parentElement && el.parentElement !== document.body && el.parentElement.children.length <= 2) {
+          el.parentElement.style.display = 'none';
+        }
+      }
+    });
 
     // 2. Find video stage container
     const container = findMainVideoStage();
 
-    if (container && container !== document.body && container.id !== 'root' && container.id !== '__next') {
-      console.log('[Kbeautyhub] Mounting unblocked HTML5 player on left stage for vid:', currentVid, 'container:', container);
-      lastMountedStreamUrl = streamUrl;
-      lastMountedVideoId = currentVid;
-
-      // Determine the exact sub-element to replace:
-      // If container contains the controls/sidebar, find its video-specific child wrapper
-      let targetStage = container;
-      const subWrapper = container.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
-      if (subWrapper && subWrapper !== container && !isInsideRightSidebar(subWrapper)) {
-        const sr = subWrapper.getBoundingClientRect();
-        if (sr.width > 220 && sr.height > 220) {
-          targetStage = subWrapper;
+    if (!container || container === document.body || container.id === 'root' || container.id === '__next') {
+      console.warn('[Kbeautyhub] Video stage container not ready yet for vid:', currentVid, 'scheduling retry');
+      setTimeout(() => {
+        if (!document.getElementById('kbeauty-unblocked-player-box') && getUrlVideoId() === currentVid) {
+          unblockAndPlay(streamUrl, force);
         }
-      }
+      }, 300);
+      return;
+    }
 
-      // Silence any other videos before clearing
+    console.log('[Kbeautyhub] Mounting unblocked HTML5 player on left stage for vid:', currentVid, 'container:', container);
+    lastMountedStreamUrl = streamUrl;
+    lastMountedVideoId = currentVid;
+
+    // Determine the exact sub-element to replace:
+    // If container contains the controls/sidebar, find its video-specific child wrapper
+    let targetStage = container;
+    const subWrapper = container.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
+    if (subWrapper && subWrapper !== container && !isInsideRightSidebar(subWrapper)) {
+      const sr = subWrapper.getBoundingClientRect();
+      if (sr.width > 220 && sr.height > 220) {
+        targetStage = subWrapper;
+      }
+    }
+
+    // Silence any other videos before clearing
+    document.querySelectorAll('video, audio').forEach(v => {
+      if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video') {
+        try {
+          v.pause();
+          v.muted = true;
+          v.volume = 0;
+          v.style.display = 'none';
+        } catch (e) {}
+      }
+    });
+
+    // Ensure targetStage has relative positioning and minHeight for absolute overlay
+    const compPos = window.getComputedStyle(targetStage).position;
+    if (compPos === 'static') {
+      targetStage.style.position = 'relative';
+    }
+    const sRect = targetStage.getBoundingClientRect();
+    if (sRect.height < 320) {
+      targetStage.style.minHeight = '520px';
+    }
+
+    // Remove any previous instance of player box
+    const existing = document.getElementById('kbeauty-unblocked-player-box');
+    if (existing) existing.remove();
+
+    const playerBox = document.createElement('div');
+    playerBox.id = 'kbeauty-unblocked-player-box';
+    playerBox.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000000;
+      overflow: hidden;
+      z-index: 9999;
+    `;
+
+    playerBox.innerHTML = `
+      <video 
+        id="kbeauty-main-video" 
+        src="${streamUrl}" 
+        controls 
+        autoplay 
+        loop 
+        playsinline
+        style="width: 100%; height: 100%; object-fit: contain; background: #000000; display: block;"
+      ></video>
+    `;
+
+    // Hide native video or play button beneath so it does not peek through
+    targetStage.querySelectorAll('video:not(#kbeauty-main-video), div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i], svg[class*="play" i]').forEach(el => {
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      el.style.display = 'none';
+    });
+
+    // Also hide all play buttons across the left video area
+    const sidebarStartX = Math.max(window.innerWidth * 0.58, window.innerWidth - 560);
+    document.querySelectorAll('button[class*="play" i], div[class*="play" i], div[class*="Play" i], [data-e2e*="play"], svg polygon').forEach(pb => {
+      if (isInsideRightSidebar(pb)) return;
+      const pr = pb.getBoundingClientRect();
+      if (pr.left < sidebarStartX && pr.top > 60) {
+        pb.style.display = 'none';
+        pb.style.opacity = '0';
+        pb.style.pointerEvents = 'none';
+      }
+    });
+
+    targetStage.appendChild(playerBox);
+
+    function silenceNativeVideos() {
+      if (!document.getElementById('kbeauty-unblocked-player-box')) return;
       document.querySelectorAll('video, audio').forEach(v => {
         if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video') {
           try {
             v.pause();
             v.muted = true;
             v.volume = 0;
-            v.style.display = 'none';
           } catch (e) {}
         }
       });
+    }
 
-      // Ensure targetStage has relative positioning and minHeight for absolute overlay
-      const compPos = window.getComputedStyle(targetStage).position;
-      if (compPos === 'static') {
-        targetStage.style.position = 'relative';
-      }
-      const sRect = targetStage.getBoundingClientRect();
-      if (sRect.height < 320) {
-        targetStage.style.minHeight = '520px';
-      }
+    silenceNativeVideos();
 
-      // Remove any previous instance of player box
-      const existing = document.getElementById('kbeauty-unblocked-player-box');
-      if (existing) existing.remove();
-
-      const playerBox = document.createElement('div');
-      playerBox.id = 'kbeauty-unblocked-player-box';
-      playerBox.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        min-height: 480px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000000;
-        overflow: hidden;
-        z-index: 20;
-      `;
-
-      playerBox.innerHTML = `
-        <video 
-          id="kbeauty-main-video" 
-          src="${streamUrl}" 
-          controls 
-          autoplay 
-          loop 
-          playsinline
-          style="width: 100%; height: 100%; object-fit: contain; background: #000000;"
-        ></video>
-      `;
-
-      // Hide native video or play button beneath so it does not peek through
-      targetStage.querySelectorAll('video:not(#kbeauty-main-video), div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i], svg[class*="play" i]').forEach(el => {
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
-        el.style.display = 'none';
+    const vid = playerBox.querySelector('video');
+    if (vid) {
+      vid.addEventListener('play', silenceNativeVideos);
+      vid.addEventListener('playing', silenceNativeVideos);
+      vid.addEventListener('pause', silenceNativeVideos);
+      vid.addEventListener('timeupdate', () => {
+        document.querySelectorAll('video').forEach(v => {
+          if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video' && !v.paused) {
+            try { v.pause(); v.muted = true; v.volume = 0; } catch (e) {}
+          }
+        });
       });
 
-      // Also hide play buttons in outer container if outside targetStage
-      if (container && container !== targetStage) {
-        container.querySelectorAll('div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i]').forEach(el => {
-          if (!isInsideRightSidebar(el)) {
-            el.style.opacity = '0';
-            el.style.pointerEvents = 'none';
-            el.style.display = 'none';
-          }
-        });
-      }
-
-      targetStage.appendChild(playerBox);
-
-      function silenceNativeVideos() {
-        if (!document.getElementById('kbeauty-unblocked-player-box')) return;
-        document.querySelectorAll('video, audio').forEach(v => {
-          if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video') {
-            try {
-              v.pause();
-              v.muted = true;
-              v.volume = 0;
-            } catch (e) {}
-          }
-        });
-      }
-
-      silenceNativeVideos();
-
-      const vid = playerBox.querySelector('video');
-      if (vid) {
-        vid.addEventListener('play', silenceNativeVideos);
-        vid.addEventListener('playing', silenceNativeVideos);
-        vid.addEventListener('pause', silenceNativeVideos);
-        vid.addEventListener('timeupdate', () => {
-          document.querySelectorAll('video').forEach(v => {
-            if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video' && !v.paused) {
-              try { v.pause(); v.muted = true; v.volume = 0; } catch (e) {}
-            }
-          });
-        });
-
-        vid.play().catch(() => {
+      const p = vid.play();
+      if (p !== undefined) {
+        p.catch(() => {
           vid.muted = true;
           vid.play().catch(() => {});
         });
       }
-
-      const vidData = videoDataMap.get(currentVid) || parseRehydrationData();
-      updateInVideoCartBadge(vidData);
     }
+
+    const vidData = videoDataMap.get(currentVid) || parseRehydrationData();
+    updateInVideoCartBadge(vidData);
   }
 
   // In-Video Mobile-Style Cart Badge (attached to video player stage)

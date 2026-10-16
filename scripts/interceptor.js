@@ -163,21 +163,40 @@
 
   function extractPlayAddr(videoObj) {
     if (!videoObj) return '';
-    if (typeof videoObj.playAddr === 'string' && videoObj.playAddr.startsWith('http')) {
-      return videoObj.playAddr;
+    if (typeof videoObj.playAddr === 'string' && videoObj.playAddr.startsWith('http')) return videoObj.playAddr;
+    if (typeof videoObj.play_addr === 'string' && videoObj.play_addr.startsWith('http')) return videoObj.play_addr;
+
+    const pa = videoObj.playAddr || videoObj.play_addr;
+    if (pa) {
+      const list = pa.urlList || pa.UrlList || pa.url_list;
+      if (Array.isArray(list)) {
+        for (const u of list) {
+          if (typeof u === 'string' && u.startsWith('http')) return u;
+        }
+      }
     }
-    if (Array.isArray(videoObj.playAddr?.urlList) && videoObj.playAddr.urlList.length > 0) {
-      return videoObj.playAddr.urlList[0];
+
+    const da = videoObj.downloadAddr || videoObj.download_addr;
+    if (da) {
+      if (typeof da === 'string' && da.startsWith('http')) return da;
+      const list = da.urlList || da.UrlList || da.url_list;
+      if (Array.isArray(list)) {
+        for (const u of list) {
+          if (typeof u === 'string' && u.startsWith('http')) return u;
+        }
+      }
     }
-    if (typeof videoObj.downloadAddr === 'string' && videoObj.downloadAddr.startsWith('http')) {
-      return videoObj.downloadAddr;
-    }
-    if (Array.isArray(videoObj.downloadAddr?.urlList) && videoObj.downloadAddr.urlList.length > 0) {
-      return videoObj.downloadAddr.urlList[0];
-    }
-    if (Array.isArray(videoObj.bitrateInfo) && videoObj.bitrateInfo.length > 0) {
-      for (const b of videoObj.bitrateInfo) {
-        if (b.PlayAddr?.UrlList?.[0]) return b.PlayAddr.UrlList[0];
+
+    const bitrates = videoObj.bitrateInfo || videoObj.bitrate_info || videoObj.bitrate;
+    if (Array.isArray(bitrates) && bitrates.length > 0) {
+      for (const b of bitrates) {
+        const bPa = b.PlayAddr || b.playAddr || b.play_addr;
+        const bList = bPa?.UrlList || bPa?.urlList || bPa?.url_list;
+        if (Array.isArray(bList)) {
+          for (const u of bList) {
+            if (typeof u === 'string' && u.startsWith('http')) return u;
+          }
+        }
       }
     }
     return '';
