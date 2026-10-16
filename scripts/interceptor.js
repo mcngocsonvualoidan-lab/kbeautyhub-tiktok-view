@@ -93,27 +93,29 @@
         }
       }
 
-      // Check standard anchor format
+      // Check standard and brand/showcase anchor formats
       const compKey = (anchor.component_key || '').toLowerCase();
-      if (compKey.includes('shop') || anchor.type === 33 || anchor.type === 6) {
-        const pId = anchor.id ? String(anchor.id) : '';
-        if (pId) {
-          const authorUniqueId = item.author?.uniqueId || '';
-          const authorNickname = item.author?.nickname || '';
-          const creatorShowcaseName = authorNickname ? `${authorNickname} (@${authorUniqueId})` : (authorUniqueId ? `Shop của @${authorUniqueId}` : 'TikTok Shop');
-          products.push({
-            productId: pId,
-            sellerId: '',
-            title: anchor.keyword || anchor.name || 'Sản phẩm TikTok Shop',
-            price: 'Xem trên Shop',
-            image: anchor.thumbnail?.url_list?.[0] || 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhoh7uhb/shop_placeholder.png',
-            webUrl: `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor`,
-            shopUrl: authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor`,
-            shopName: creatorShowcaseName,
-            isRealShop: false,
-            source: 'tiktok_shop'
-          });
-        }
+      const isShopLike = compKey.includes('shop') || compKey.includes('ecom') || compKey.includes('product') || compKey.includes('brand') || compKey.includes('cart') || anchor.type === 33 || anchor.type === 6 || anchor.type === 40 || anchor.type === 24 || anchor.type === 28 || anchor.type === 54 || !!anchor.keyword || !!anchor.name;
+      if (isShopLike) {
+        const pId = anchor.id ? String(anchor.id) : (anchor.product_id ? String(anchor.product_id) : '');
+        const title = anchor.keyword || anchor.name || anchor.title || 'Sản phẩm TikTok Shop';
+        const authorUniqueId = item.author?.uniqueId || '';
+        const authorNickname = item.author?.nickname || '';
+        const creatorShowcaseName = authorNickname ? `${authorNickname} (@${authorUniqueId})` : (authorUniqueId ? `Shop của @${authorUniqueId}` : 'TikTok Shop');
+        const shopDisplayName = (extractedShopName || anchor.keyword || creatorShowcaseName);
+
+        products.push({
+          productId: pId,
+          sellerId: '',
+          title: title,
+          price: 'Xem trên Shop',
+          image: anchor.thumbnail?.url_list?.[0] || anchor.icon?.url_list?.[0] || 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhoh7uhb/shop_placeholder.png',
+          webUrl: pId ? `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor` : (authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : 'https://shop.tiktok.com'),
+          shopUrl: authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : (pId ? `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor` : 'https://www.tiktok.com'),
+          shopName: shopDisplayName,
+          isRealShop: !!extractedShopName || !!anchor.keyword,
+          source: 'tiktok_shop'
+        });
       }
     }
 
@@ -205,10 +207,12 @@
     const playAddr = extractPlayAddr(item.video);
     const cover = item.video?.cover || item.video?.originCover || '';
 
+    const hasAnyAnchor = Array.isArray(item.anchors) && item.anchors.length > 0;
     const isEcommerce = products.length > 0 || 
                         !!item.is_ecommerce || 
                         !!item.commercial_video_info || 
-                        (Array.isArray(item.anchors) && item.anchors.some(a => a.type === 6 || a.component_key?.includes('ecommerce')));
+                        hasAnyAnchor ||
+                        (Array.isArray(item.anchors) && item.anchors.some(a => a.type === 6 || a.type === 33 || a.type === 40 || a.component_key?.includes('ecommerce') || a.component_key?.includes('shop')));
 
     return {
       videoId,
@@ -266,7 +270,8 @@
         url.includes('/api/post/item_list') ||
         url.includes('item_list') ||
         url.includes('/api/feed/') ||
-        url.includes('/api/related/')
+        url.includes('/api/related/') ||
+        url.includes('web_api')
       ) {
         const clone = response.clone();
         clone.json().then(data => {
@@ -276,6 +281,33 @@
     } catch (e) {}
     return response;
   };
+
+  // Hook XMLHttpRequest passively
+  try {
+    const origOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+      this.addEventListener('load', function() {
+        try {
+          const urlStr = String(url || '');
+          if (
+            urlStr.includes('/api/item/') ||
+            urlStr.includes('/api/recommend/') ||
+            urlStr.includes('/api/post/item_list') ||
+            urlStr.includes('item_list') ||
+            urlStr.includes('/api/feed/') ||
+            urlStr.includes('/api/related/') ||
+            urlStr.includes('web_api')
+          ) {
+            const text = this.responseText;
+            if (text && text.charCodeAt(0) === 123) { // starts with '{'
+              processPayload(JSON.parse(text));
+            }
+          }
+        } catch (e) {}
+      });
+      return origOpen.apply(this, [method, url, ...rest]);
+    };
+  } catch (e) {}
 
   // Hook SPA History Navigation (instant video change detection)
   try {

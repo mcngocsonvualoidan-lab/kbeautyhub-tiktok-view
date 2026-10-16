@@ -270,27 +270,31 @@
         }
       }
 
-      // Check standard anchor format
+      // Check standard and brand/showcase anchor formats
       const compKey = (anchor.component_key || '').toLowerCase();
-      if (compKey.includes('shop') || anchor.type === 33 || anchor.type === 6) {
-        const pId = anchor.id ? String(anchor.id) : '';
+      const isShopLike = compKey.includes('shop') || compKey.includes('ecom') || compKey.includes('product') || compKey.includes('brand') || compKey.includes('cart') || anchor.type === 33 || anchor.type === 6 || anchor.type === 40 || anchor.type === 24 || anchor.type === 28 || anchor.type === 54 || !!anchor.keyword || !!anchor.name;
+      if (isShopLike) {
+        const pId = anchor.id ? String(anchor.id) : (anchor.product_id ? String(anchor.product_id) : '');
+        const title = anchor.keyword || anchor.name || anchor.title || 'Sản phẩm TikTok Shop';
+        const authorUniqueId = item.author?.uniqueId || '';
+        const authorNickname = item.author?.nickname || '';
+        const creatorShowcaseName = authorNickname ? `${authorNickname} (@${authorUniqueId})` : (authorUniqueId ? `Shop của @${authorUniqueId}` : 'TikTok Shop');
+        const shopDisplayName = (anchor.keyword || creatorShowcaseName);
+
+        const prodObj = {
+          productId: pId,
+          sellerId: '',
+          title: title,
+          price: 'Xem trên Shop',
+          image: anchor.thumbnail?.url_list?.[0] || anchor.icon?.url_list?.[0] || 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhoh7uhb/shop_placeholder.png',
+          webUrl: pId ? `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor` : (authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : 'https://shop.tiktok.com'),
+          shopUrl: authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : (pId ? `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor` : 'https://www.tiktok.com'),
+          shopName: shopDisplayName,
+          isRealShop: !!anchor.keyword,
+          source: 'tiktok_shop'
+        };
+        products.push(prodObj);
         if (pId) {
-          const authorUniqueId = item.author?.uniqueId || '';
-          const authorNickname = item.author?.nickname || '';
-          const creatorShowcaseName = authorNickname ? `${authorNickname} (@${authorUniqueId})` : (authorUniqueId ? `Shop của @${authorUniqueId}` : 'TikTok Shop');
-          const prodObj = {
-            productId: pId,
-            sellerId: '',
-            title: anchor.keyword || anchor.name || 'Sản phẩm TikTok Shop',
-            price: 'Xem trên Shop',
-            image: anchor.thumbnail?.url_list?.[0] || 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhoh7uhb/shop_placeholder.png',
-            webUrl: `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor`,
-            shopUrl: authorUniqueId ? `https://www.tiktok.com/@${authorUniqueId}` : `https://shop.tiktok.com/vn/pdp/${pId}?source=anchor`,
-            shopName: creatorShowcaseName,
-            isRealShop: false,
-            source: 'tiktok_shop'
-          };
-          products.push(prodObj);
           resolveRealShopName(prodObj, item);
         }
       }
@@ -645,6 +649,35 @@
         return el;
       }
     }
+    return null;
+  }
+
+  // Real-time DOM Anchor Scanner (detects anchor chips like 'Rosaleen' or TikTok Shop banners directly on screen)
+  function findDOMShopAnchor() {
+    // 1. Blocker element
+    if (findBlockerElement()) return { isShop: true, title: 'TikTok Shop' };
+
+    // 2. Yellow Shop Banner at bottom (e.g. 'GIỎ HÀNG TIKTOK', 'Video có gắn giỏ hàng')
+    const elements = document.querySelectorAll('div, p, span, a, button');
+    for (const el of elements) {
+      const text = (el.textContent || '').trim();
+      if (text.includes('GIỎ HÀNG TIKTOK') || text.includes('Video có gắn giỏ hàng')) {
+        return { isShop: true, title: 'TikTok Shop' };
+      }
+    }
+
+    // 3. Anchor tags / chips on video stage (e.g. "Rosaleen", anchor chips with shopping bag icon)
+    const anchorElements = document.querySelectorAll('[data-e2e*="anchor"], [class*="Anchor"], [class*="anchor"], a[href*="/tag/"], a[href*="/product/"], a[href*="/pdp/"], a[href*="shop.tiktok.com"]');
+    for (const el of anchorElements) {
+      const text = (el.textContent || '').trim();
+      if (text && text.length > 1 && text.length < 50 && 
+          !text.includes('Follow') && !text.includes('Thích') && 
+          !text.includes('Bình luận') && !text.includes('Chia sẻ') &&
+          !text.includes('Đăng nhập') && !text.includes('Kbeautyhub')) {
+        return { isShop: true, title: text };
+      }
+    }
+
     return null;
   }
 
@@ -1726,10 +1759,58 @@
     let data = videoDataMap.get(vid);
     if (!data) data = parseRehydrationData(vid);
 
-    // If stream URL is missing, resolve it via TikWM through background service worker
+    // 1. If stream URL is missing, resolve it via TikWM through background service worker
     if (!data || !data.playAddr) {
       if (!resolvingSet.has(vid)) {
         data = await resolveStreamViaTikWM(vid);
+      }
+    }
+
+    // 2. Real-time DOM Anchor detection (catches tags like 'Rosaleen', yellow cart banners)
+    const domAnchor = findDOMShopAnchor();
+    if (domAnchor && domAnchor.isShop) {
+      if (!data) {
+        data = {
+          videoId: vid,
+          desc: '',
+          author: { uniqueId: getProfileUsername() || 'creator' },
+          products: [],
+          hasShopCart: true,
+          shopName: domAnchor.title,
+          capturedAt: Date.now()
+        };
+        videoDataMap.set(vid, data);
+      } else {
+        data.hasShopCart = true;
+        if (!data.shopName || data.shopName === 'TikTok Shop') {
+          data.shopName = domAnchor.title;
+        }
+      }
+
+      if (data.products.length === 0 && domAnchor.title && domAnchor.title !== 'TikTok Shop') {
+        data.products.push({
+          productId: '',
+          sellerId: '',
+          title: domAnchor.title,
+          price: 'Xem trên Shop',
+          image: 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhoh7uhb/shop_placeholder.png',
+          webUrl: window.location.href,
+          shopUrl: `https://www.tiktok.com/search?q=${encodeURIComponent(domAnchor.title)}`,
+          shopName: domAnchor.title,
+          isRealShop: true,
+          source: 'tiktok_shop'
+        });
+      }
+    }
+
+    // 3. Active Background Deep Scan: If cart is still unconfirmed, query TikWM for full anchors on scroll
+    if (vid && (!data || !data.hasShopCart || (data.products && data.products.length === 0))) {
+      if (!resolvingSet.has(vid)) {
+        resolveStreamViaTikWM(vid).then(updated => {
+          if (updated && updated.hasShopCart && currentActiveVideoId === vid) {
+            updateUI();
+          }
+        }).catch(() => {});
       }
     }
 
