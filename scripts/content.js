@@ -748,128 +748,151 @@
     return false;
   }
 
-  // Ultra-robust finder for the main visible video stage on TikTok PC (Left side over the Play button)
+  // Ultra-robust finder for the main visible video stage on TikTok PC
+  // Supports both Modal View (from profile/search) and Direct Page/Feed View
   function findMainVideoStage() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const sidebarStartX = Math.max(vw * 0.58, vw - 560);
+    const closeBtn = document.querySelector('[data-e2e="browse-close"]');
+    const isModal = Boolean(closeBtn);
 
-    // 1. Direct Anchor: find the big play button or play icon on the left stage
-    const playButtons = document.querySelectorAll('div[class*="Play" i], button[class*="play" i], [data-e2e*="play"], svg polygon, svg[class*="play" i]');
-    for (const pb of playButtons) {
-      if (isInsideRightSidebar(pb)) continue;
-      const pr = pb.getBoundingClientRect();
-      if (pr.left < sidebarStartX && pr.top > 60 && pr.bottom < vh - 40) {
-        let p = pb.parentElement;
-        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && !isInsideRightSidebar(p)) {
-          const r = p.getBoundingClientRect();
-          if (r.width >= 240 && r.height >= 280 && r.left < sidebarStartX) {
-            return p;
+    // MODE 1: MODAL VIEW (User clicked video from profile/search)
+    if (isModal) {
+      // 1. Ancestor of Close Button ([data-e2e="browse-close"]) that spans the left stage
+      let p = closeBtn.parentElement;
+      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
+        if (isInsideRightSidebar(p)) break;
+        const r = p.getBoundingClientRect();
+        if (r.left < 140 && r.top < 140 && r.width >= 400 && r.height >= 400 && r.width < vw - 250) {
+          return p;
+        }
+        p = p.parentElement;
+      }
+
+      // 2. Primary left-stage modal containers
+      const modalLeftSelectors = [
+        '[data-e2e="browse-video"]',
+        '[data-e2e="browse-video-container"]',
+        'div[class*="DivBrowseModeContainer"]',
+        'div[class*="DivVideoContainer"]',
+        'div[class*="DivVideoWrapper"]',
+        'div[class*="DivBasicPlayerWrapper"]',
+        '[data-e2e="video-container"]',
+        '[data-e2e="video-player-container"]'
+      ];
+
+      for (const sel of modalLeftSelectors) {
+        const candidates = document.querySelectorAll(sel);
+        for (const el of candidates) {
+          if (isInsideRightSidebar(el)) continue;
+          const r = el.getBoundingClientRect();
+          if (r.left < 140 && r.top < 140 && r.width >= 400 && r.height >= 400 && r.width < vw - 250) {
+            return el;
           }
-          p = p.parentElement;
         }
       }
-    }
 
-    // 2. Primary video stage containers on the LEFT
-    const modalLeftSelectors = [
-      '[data-e2e="browse-video"]',
-      '[data-e2e="browse-video-container"]',
-      'div[class*="DivVideoContainer"]',
-      'div[class*="DivBrowseModeContainer"]',
-      'div[class*="DivVideoWrapper"]',
-      'div[class*="DivBasicPlayerWrapper"]',
-      'div[class*="DivPlayContainer"]',
-      '[data-e2e="video-container"]',
-      '[data-e2e="video-player-container"]',
-      '[data-e2e="feed-video"]',
-      '[data-e2e="recommend-list-item-container"]'
-    ];
-
-    for (const sel of modalLeftSelectors) {
-      const candidates = document.querySelectorAll(sel);
-      for (const el of candidates) {
-        if (isInsideRightSidebar(el)) continue;
-        const r = el.getBoundingClientRect();
-        if (r.width >= 240 && r.height >= 260 && r.left < sidebarStartX) {
-          const innerWrapper = el.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"]');
-          if (innerWrapper && !isInsideRightSidebar(innerWrapper)) {
-            const ir = innerWrapper.getBoundingClientRect();
-            if (ir.width > 220 && ir.height > 220) return innerWrapper;
+      // 3. Fallback: Any div on the left stage spanning full height
+      const divs = document.querySelectorAll('div, section');
+      let bestModal = null;
+      let maxArea = 0;
+      for (const d of divs) {
+        if (d.id === 'kbeauty-root' || d.id === 'root' || d.id === '__next' || d === document.body) continue;
+        if (d.closest('#kbeauty-root') || d.closest('#kbeauty-drawer')) continue;
+        if (isInsideRightSidebar(d)) continue;
+        const r = d.getBoundingClientRect();
+        if (r.left < 140 && r.top < 140 && r.width >= 400 && r.height >= 400 && r.width < vw - 250) {
+          const area = r.width * r.height;
+          if (area > maxArea) {
+            maxArea = area;
+            bestModal = d;
           }
-          return el;
         }
       }
+      if (bestModal) return bestModal;
     }
 
-    // 3. Direct Anchor from native video if present on the LEFT (< sidebarStartX)
+    // MODE 2: DIRECT PAGE / FEED VIEW (No modal close button, e.g. standalone video URL or feed)
+    // Left nav bar is typically at x: 0 to ~240px
+    const leftNav = document.querySelector('[data-e2e="nav-bar"], [data-e2e="side-nav"], nav, aside, div[class*="SideNav"], div[class*="DivSideNavContainer"]');
+    const leftNavRight = leftNav ? Math.min(leftNav.getBoundingClientRect().right, 300) : 0;
+    const minVideoLeft = Math.max(0, leftNavRight - 20);
+
+    // 1. Check native video element in the center column
     const nativeVideos = document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
     for (const nativeVid of nativeVideos) {
       if (isInsideRightSidebar(nativeVid)) continue;
-      const nr = nativeVid.getBoundingClientRect();
-      if (nr.left < sidebarStartX && nr.width > 80) {
-        let p = nativeVid.parentElement;
-        while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
-          if (isInsideRightSidebar(p)) break;
-          const r = p.getBoundingClientRect();
-          if (r.width >= 240 && r.height >= 280 && r.left < sidebarStartX) {
-            return p;
-          }
-          p = p.parentElement;
+      let p = nativeVid.parentElement;
+      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
+        if (isInsideRightSidebar(p)) break;
+        const r = p.getBoundingClientRect();
+        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
+          return p;
         }
-        if (nativeVid.parentElement) return nativeVid.parentElement;
+        p = p.parentElement;
+      }
+      if (nativeVid.parentElement && !isInsideRightSidebar(nativeVid.parentElement)) {
+        return nativeVid.parentElement;
       }
     }
 
-    // 4. Anchor from visible video controls strictly on the LEFT stage (Speaker mute button, Close button)
-    const leftControlEls = [
-      document.querySelector('[data-e2e="video-sound"]'),
-      document.querySelector('button[aria-label*="ute"]'),
-      document.querySelector('button[aria-label*="tiếng"]'),
-      document.querySelector('button[aria-label*="thanh"]'),
-      document.querySelector('[data-e2e="browse-close"]')
-    ];
-
-    for (const ctrl of leftControlEls) {
-      if (!ctrl || isInsideRightSidebar(ctrl)) continue;
-      let p = ctrl.parentElement;
-      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next' && p.id !== 'kbeauty-root') {
+    // 2. Check parent of play button / blocker element in the center column
+    const playButtons = document.querySelectorAll('div[class*="Play" i], button[class*="play" i], [data-e2e*="play"], svg polygon');
+    for (const pb of playButtons) {
+      if (isInsideRightSidebar(pb)) continue;
+      let p = pb.parentElement;
+      while (p && p !== document.body && p.id !== 'root' && p.id !== '__next') {
         if (isInsideRightSidebar(p)) break;
         const r = p.getBoundingClientRect();
-        if (r.width >= 240 && r.height >= 300 && r.left < sidebarStartX) {
-          const sub = p.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
-          if (sub && sub !== p && !isInsideRightSidebar(sub)) {
-            const sr = sub.getBoundingClientRect();
-            if (sr.width >= 240 && sr.height >= 260) return sub;
-          }
+        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
           return p;
         }
         p = p.parentElement;
       }
     }
 
-    // 5. Fallback: Search all divs in viewport strictly on the left side (< sidebarStartX)
+    // 3. Selectors for video wrappers in feed/page
+    const pageVideoSelectors = [
+      '[data-e2e="feed-video"]',
+      'div[class*="DivVideoWrapper"]',
+      'div[class*="DivBasicPlayerWrapper"]',
+      'div[class*="DivPlayerContainer"]',
+      '[data-e2e="video-player-container"]',
+      '[data-e2e="video-container"]',
+      'div[class*="DivVideoContainer"]',
+      '[data-e2e="recommend-list-item-container"]'
+    ];
+
+    for (const sel of pageVideoSelectors) {
+      const candidates = document.querySelectorAll(sel);
+      for (const el of candidates) {
+        if (isInsideRightSidebar(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
+          return el;
+        }
+      }
+    }
+
+    // 4. Fallback search across divs
     const divs = document.querySelectorAll('div, section');
-    let best = null;
+    let bestPage = null;
     let maxArea = 0;
     for (const d of divs) {
       if (d.id === 'kbeauty-root' || d.id === 'root' || d.id === '__next' || d === document.body) continue;
       if (d.closest('#kbeauty-root') || d.closest('#kbeauty-drawer')) continue;
       if (isInsideRightSidebar(d)) continue;
       const r = d.getBoundingClientRect();
-      if (r.width > vw - 60 && r.height > vh - 20) continue;
-      if (r.left < 10 && r.width < 220) continue;
-      if (r.left > sidebarStartX) continue; // strictly skip right side
-
-      if (r.width >= 240 && r.height >= 300 && r.top < 200 && r.bottom > 250) {
+      if (r.left >= minVideoLeft && r.left < sidebarStartX - 150 && r.width >= 240 && r.height >= 300 && r.right <= sidebarStartX + 40) {
         const area = r.width * r.height;
         if (area > maxArea) {
           maxArea = area;
-          best = d;
+          bestPage = d;
         }
       }
     }
-    return best;
+    return bestPage;
   }
 
   // Check if current video is ACTUALLY blocked by TikTok Shop
@@ -944,16 +967,8 @@
     lastMountedStreamUrl = streamUrl;
     lastMountedVideoId = currentVid;
 
-    // Determine the exact sub-element to replace:
-    // If container contains the controls/sidebar, find its video-specific child wrapper
+    // Use full left-stage container directly to guarantee perfect centering
     let targetStage = container;
-    const subWrapper = container.querySelector('div[class*="BasicPlayer"], div[class*="VideoWrapper"], div[class*="PlayerContainer"], div[class*="video"]');
-    if (subWrapper && subWrapper !== container && !isInsideRightSidebar(subWrapper)) {
-      const sr = subWrapper.getBoundingClientRect();
-      if (sr.width > 220 && sr.height > 220) {
-        targetStage = subWrapper;
-      }
-    }
 
     // Silence any other videos before clearing
     document.querySelectorAll('video, audio').forEach(v => {
@@ -967,10 +982,34 @@
       }
     });
 
-    // Ensure targetStage has relative positioning for absolute overlay
+    // Ensure targetStage has relative positioning and adequate height
     const compPos = window.getComputedStyle(targetStage).position;
     if (compPos === 'static') {
       targetStage.style.position = 'relative';
+    }
+    const sRect = targetStage.getBoundingClientRect();
+    if (sRect.height < 320) {
+      targetStage.style.minHeight = '520px';
+    }
+
+    const isModal = Boolean(document.querySelector('[data-e2e="browse-close"]'));
+
+    // Elevate Close button (X) and search bar on Modal so user can navigate easily
+    const closeBtn = document.querySelector('[data-e2e="browse-close"]');
+    if (closeBtn) {
+      closeBtn.style.zIndex = '10000';
+      let cp = closeBtn.parentElement;
+      while (cp && cp !== document.body && cp.id !== 'root' && cp.id !== '__next') {
+        if (window.getComputedStyle(cp).zIndex !== 'auto') {
+          cp.style.zIndex = '10000';
+        }
+        cp = cp.parentElement;
+      }
+    }
+    const searchForm = document.querySelector('form[action*="/search"], input[type="search"]');
+    if (searchForm) {
+      const sp = searchForm.closest('div');
+      if (sp) sp.style.zIndex = '10000';
     }
 
     // Remove any previous instance of player box
@@ -990,8 +1029,9 @@
       justify-content: center;
       background: #000000;
       overflow: hidden;
-      z-index: 9999;
+      z-index: ${isModal ? 9999 : 99};
       pointer-events: auto;
+      border-radius: ${isModal ? '0' : '12px'};
     `;
 
     playerBox.innerHTML = `
@@ -1002,7 +1042,7 @@
         autoplay 
         loop 
         playsinline
-        style="height: 100%; max-height: 100%; width: auto; max-width: calc(100vh * 9 / 16); aspect-ratio: 9/16; object-fit: contain; background: #000000; display: block; margin: 0 auto; border-radius: 6px;"
+        style="width: 100%; height: 100%; max-height: 100%; max-width: ${isModal ? 'calc(100vh * 9 / 16)' : '100%'}; aspect-ratio: 9/16; object-fit: contain; background: #000000; display: block; margin: 0 auto; border-radius: ${isModal ? '6px' : '10px'};"
       ></video>
     `;
 
