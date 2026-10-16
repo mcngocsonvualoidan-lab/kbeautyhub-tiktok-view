@@ -623,20 +623,27 @@
   }
 
   function getUrlVideoId() {
-    // 1. Direct video URL match
+    // 1. Direct video URL match (e.g. /@user/video/123456... or /video/123456...)
     const match = window.location.pathname.match(/\/video\/(\d+)/);
     if (match) return match[1];
 
-    // 2. Feed mode: Find video element currently centered or playing in viewport
+    // If on a creator/shop profile page (/@username without /video/), user is on profile grid!
+    // NEVER unblock onto the profile grid page!
+    if (window.location.pathname.startsWith('/@')) {
+      return null;
+    }
+
+    // 2. Feed mode: Find video element currently centered or playing in viewport (ONLY in feed like /, /foryou)
     const videos = document.querySelectorAll('video');
     let bestVideo = null;
     let maxVisibleHeight = 0;
     const vh = window.innerHeight;
 
     for (const v of videos) {
+      if (v.id === 'kbeauty-main-video' || v.id === 'kbeauty-drawer-video') continue;
       const rect = v.getBoundingClientRect();
       const visibleHeight = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0));
-      if (visibleHeight > maxVisibleHeight && visibleHeight > 160) {
+      if (visibleHeight > maxVisibleHeight && visibleHeight > 200) {
         maxVisibleHeight = visibleHeight;
         bestVideo = v;
       }
@@ -960,14 +967,10 @@
       }
     });
 
-    // Ensure targetStage has relative positioning and minHeight for absolute overlay
+    // Ensure targetStage has relative positioning for absolute overlay
     const compPos = window.getComputedStyle(targetStage).position;
     if (compPos === 'static') {
       targetStage.style.position = 'relative';
-    }
-    const sRect = targetStage.getBoundingClientRect();
-    if (sRect.height < 320) {
-      targetStage.style.minHeight = '520px';
     }
 
     // Remove any previous instance of player box
@@ -982,13 +985,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      min-height: 480px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #000000;
       overflow: hidden;
       z-index: 9999;
+      pointer-events: auto;
     `;
 
     playerBox.innerHTML = `
@@ -999,7 +1002,7 @@
         autoplay 
         loop 
         playsinline
-        style="width: 100%; height: 100%; object-fit: contain; background: #000000; display: block;"
+        style="height: 100%; max-height: 100%; width: auto; max-width: calc(100vh * 9 / 16); aspect-ratio: 9/16; object-fit: contain; background: #000000; display: block; margin: 0 auto; border-radius: 6px;"
       ></video>
     `;
 
@@ -1833,6 +1836,12 @@
 
     const vid = getUrlVideoId();
     if (!vid) {
+      const staleBox = document.getElementById('kbeauty-unblocked-player-box');
+      if (staleBox) {
+        staleBox.remove();
+        lastMountedStreamUrl = null;
+        lastMountedVideoId = null;
+      }
       if (currentActiveVideoId !== null) {
         currentActiveVideoId = null;
         lastActiveVideoId = null;
