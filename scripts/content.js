@@ -926,31 +926,30 @@
   function isVideoBlocked(videoData) {
     if (!videoData) return false;
 
-    // 1. Blocker element explicitly found in DOM
+    // 1. Blocker element explicitly found in DOM (e.g. "Xem video TikTok Shop trong ứng dụng TikTok")
     if (findBlockerElement()) return true;
 
-    // 2. Check the native video in the ACTIVE visible stage
-    const activeStage = findMainVideoStage();
-    const activeNativeVid = activeStage ? activeStage.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)') : document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    // 2. Check if user is in a Modal popup (opened from a shop profile grid or search)
+    const isModal = Boolean(document.querySelector('[data-e2e="browse-close"]'));
 
-    // If native video is ALREADY PLAYING smoothly without any blocker, DO NOT block/replace it!
-    if (activeNativeVid && !activeNativeVid.paused && activeNativeVid.currentTime > 0.1 && activeNativeVid.readyState >= 2 && !activeNativeVid.error) {
+    // In normal Feed / Direct URL scroll: NEVER unblock because TikTok PC plays natively!
+    if (!isModal) {
       return false;
     }
 
-    // 3. Video has TikTok Shop cart:
-    // If native video is missing, paused, errored, or has zero dimensions, it is blocked on PC
-    if (videoData.hasShopCart) {
-      if (!activeNativeVid) return true;
-      if (activeNativeVid.error) return true;
-      const rect = activeNativeVid.getBoundingClientRect();
-      if (rect.width < 100 || rect.height < 100) return true;
-      // If paused or stalled while user is on this video, it's blocked by PC shop restrictions
-      if (activeNativeVid.paused || activeNativeVid.readyState < 2) return true;
+    // 3. In Modal view (shop profile modal):
+    // If native video is ALREADY PLAYING, never touch it!
+    const nativeVid = document.querySelector('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)');
+    if (nativeVid && !nativeVid.paused && nativeVid.currentTime > 0.3 && !nativeVid.error) {
+      return false;
     }
 
-    // 4. Fallback: native video has explicit error
-    if (activeNativeVid && activeNativeVid.error) return true;
+    // If in modal and has shop cart and native video is not playing / stalled / errored
+    if (videoData.hasShopCart) {
+      if (!nativeVid || nativeVid.paused || nativeVid.error || nativeVid.readyState < 2) {
+        return true;
+      }
+    }
 
     return false;
   }
@@ -981,15 +980,12 @@
       return;
     }
 
-    // 1. Hide all blocker toasts and tooltips safely
+    // 1. Hide all blocker toasts and tooltips safely (leaf node only, NEVER touch parents)
     document.querySelectorAll('div, p, span').forEach(el => {
       if ((el.textContent || '').includes('Xem video TikTok Shop')) {
         el.style.display = 'none';
         el.style.opacity = '0';
         el.style.pointerEvents = 'none';
-        if (el.parentElement && el.parentElement !== document.body && el.parentElement.children.length <= 2) {
-          el.parentElement.style.display = 'none';
-        }
       }
     });
 
@@ -1088,23 +1084,11 @@
       ></video>
     `;
 
-    // Hide native video or play button beneath so it does not peek through
-    targetStage.querySelectorAll('video:not(#kbeauty-main-video), div[class*="PlayContainer"], button[class*="play" i], div[class*="play" i], svg[class*="play" i]').forEach(el => {
+    // Only hide native video directly inside targetStage
+    targetStage.querySelectorAll('video:not(#kbeauty-main-video)').forEach(el => {
       el.style.opacity = '0';
       el.style.pointerEvents = 'none';
       el.style.display = 'none';
-    });
-
-    // Also hide all play buttons across the left video area
-    const sidebarStartX = Math.max(window.innerWidth * 0.58, window.innerWidth - 560);
-    document.querySelectorAll('button[class*="play" i], div[class*="play" i], div[class*="Play" i], [data-e2e*="play"], svg polygon').forEach(pb => {
-      if (isInsideRightSidebar(pb)) return;
-      const pr = pb.getBoundingClientRect();
-      if (pr.left < sidebarStartX && pr.top > 60) {
-        pb.style.display = 'none';
-        pb.style.opacity = '0';
-        pb.style.pointerEvents = 'none';
-      }
     });
 
     targetStage.appendChild(playerBox);
@@ -2019,7 +2003,7 @@
         }).catch(() => {});
       }
     } else {
-      // NORMAL VIDEO: Do NOT touch native player!
+      // NORMAL OR NATIVELY PLAYING VIDEO: Do NOT touch native player!
       // If custom player was mounted from previous video, remove it cleanly so normal video plays natively!
       const unblockedBox = document.getElementById('kbeauty-unblocked-player-box');
       if (unblockedBox) {
@@ -2027,13 +2011,15 @@
         unblockedBox.remove();
         lastMountedStreamUrl = null;
         lastMountedVideoId = null;
-        document.querySelectorAll('video').forEach(v => {
-          if (v.id !== 'kbeauty-main-video' && v.id !== 'kbeauty-drawer-video') {
-            v.style.display = '';
-            if (v.paused) v.play().catch(() => {});
-          }
-        });
       }
+      // Guarantee all native videos are visible and unmuted
+      document.querySelectorAll('video:not(#kbeauty-main-video):not(#kbeauty-drawer-video)').forEach(v => {
+        if (v.style.display === 'none') {
+          v.style.display = '';
+          v.style.opacity = '';
+          v.style.pointerEvents = '';
+        }
+      });
     }
 
     // In-video Mobile Cart Badge
